@@ -19,8 +19,10 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
 export default function AnalysisScreen() {
-  const { imageUri } = useLocalSearchParams();
-  const [filmDiameter, setFilmDiameter] = useState("25"); // Default 25mm?
+  const { imageUri, diameter } = useLocalSearchParams();
+  const [filmDiameter, setFilmDiameter] = useState(
+    diameter ? diameter.toString() : "25",
+  );
 
   // State for circles
   // Ref Circle (Blue) - Matches the full film
@@ -39,16 +41,41 @@ export default function AnalysisScreen() {
 
   const calculateResult = () => {
     const realDiameter = parseFloat(filmDiameter);
-    if (isNaN(realDiameter) || realDiameter <= 0) return 0;
+    if (isNaN(realDiameter) || realDiameter <= 0)
+      return { diameter: 0, area: 0 };
 
-    // Pixel ratio
+    /**
+     * Area Calculation Logic / 면적 계산 로직
+     * -------------------------------------
+     * 1. Determine Pixel-to-Millimeter Ratio (픽셀 대 mm 비율 계산)
+     *    We know the real-world diameter of the film input by the user (filmDiameter)
+     *    and its size in pixels on the screen (refCircle.radius * 2).
+     *    사용자가 입력한 실제 필름 직경과 화면상의 필름(파란 원) 픽셀 크기를 비교하여 비율을 구합니다.
+     *
+     *    ratio = realDiameter / (refCircle.radius * 2)
+     *
+     * 2. Calculate Target Spot Diameter (타겟 구역 지름 계산)
+     *    Apply the same ratio to the target circle (red circle).
+     *    빨간 원(타겟 구역)의 픽셀 크기에 위에서 구한 비율을 곱해 실제 지름을 구합니다.
+     *
+     *    targetDiameterMm = (targetCircle.radius * 2) * ratio
+     *
+     * 3. Calculate Target Spot Area (타겟 구역 넓이 계산)
+     *    Using the circle area formula: A = πr²
+     *    원의 넓이 공식을 사용하여 실제 넓이를 구합니다.
+     *
+     *    radius = targetDiameterMm / 2
+     *    Area = Math.PI * (radius * radius)
+     */
     const pixelToMm = realDiameter / (refCircle.radius * 2);
     const targetDiameterMm = targetCircle.radius * 2 * pixelToMm;
+    const targetRadiusMm = targetDiameterMm / 2;
+    const targetAreaMm2 = Math.PI * Math.pow(targetRadiusMm, 2);
 
-    return targetDiameterMm;
+    return { diameter: targetDiameterMm, area: targetAreaMm2 };
   };
 
-  const resultMm = calculateResult();
+  const { diameter: resultMm, area: resultArea } = calculateResult();
   const isHeavyMetalDetected = resultMm > 0; // Placeholder logic.
   // TODO: Add specific threshold logic if user provided it.
   // "특정 수식을 대입하여 중금속이 검출되었는가를 알아내는 것이 주 목적" - The user mentioned a formula.
@@ -146,13 +173,32 @@ export default function AnalysisScreen() {
 
             {/* Result Section - Highlighted like Toss */}
             <View className="bg-primary/10 rounded-2xl p-4 mt-2">
-              <Text className="text-primary text-sm font-semibold mb-1">
-                Measured Spot Diameter
-              </Text>
-              <Text className="text-3xl font-bold text-primary">
-                {resultMm.toFixed(2)}
-                <Text className="text-lg font-medium text-primary/70"> mm</Text>
-              </Text>
+              <View className="flex-row justify-between items-end">
+                <View>
+                  <Text className="text-primary text-sm font-semibold mb-1">
+                    Spot Diameter
+                  </Text>
+                  <Text className="text-3xl font-bold text-primary">
+                    {resultMm.toFixed(2)}
+                    <Text className="text-lg font-medium text-primary/70">
+                      {" "}
+                      mm
+                    </Text>
+                  </Text>
+                </View>
+                <View>
+                  <Text className="text-primary text-sm font-semibold mb-1 text-right">
+                    Spot Area
+                  </Text>
+                  <Text className="text-3xl font-bold text-primary text-right">
+                    {resultArea.toFixed(2)}
+                    <Text className="text-lg font-medium text-primary/70">
+                      {" "}
+                      mm²
+                    </Text>
+                  </Text>
+                </View>
+              </View>
 
               {/* Placeholder for Heavy Metal Detection Status */}
               {/* Assuming larger spot = reaction? Or specific size? */}
@@ -169,6 +215,7 @@ export default function AnalysisScreen() {
                   pathname: "/result",
                   params: {
                     result: resultMm.toFixed(2),
+                    area: resultArea.toFixed(2),
                     imageUri: imageUri as string,
                   },
                 });

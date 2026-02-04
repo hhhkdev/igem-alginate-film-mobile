@@ -1,14 +1,20 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRef, useState } from "react";
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ArrowLeft, Zap, ZapOff } from "lucide-react-native";
+import {
+  ArrowLeft,
+  Zap,
+  ZapOff,
+  Camera as CameraIcon,
+} from "lucide-react-native";
 import { cn } from "../../lib/utils"; // Make sure this path is correct based on your previous step
 
 export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [flash, setFlash] = useState(false);
+  const { diameter } = useLocalSearchParams();
   const cameraRef = useRef<CameraView>(null);
 
   if (!permission) {
@@ -19,18 +25,36 @@ export default function CameraScreen() {
   if (!permission.granted) {
     // Camera permissions are not granted yet.
     return (
-      <SafeAreaView className="flex-1 bg-background justify-center items-center p-6">
-        <Text className="text-center text-lg mb-4 text-foreground">
-          We need your permission to show the camera
-        </Text>
-        <TouchableOpacity
-          className="bg-primary px-6 py-3 rounded-xl"
-          onPress={requestPermission}
-        >
-          <Text className="text-primary-foreground font-semibold">
-            Grant Permission
-          </Text>
-        </TouchableOpacity>
+      <SafeAreaView className="flex-1 bg-black justify-center items-center p-6">
+        <View className="bg-white dark:bg-slate-900 p-8 rounded-3xl items-center w-full max-w-sm space-y-6">
+          <View className="bg-blue-100 dark:bg-blue-900/30 p-4 rounded-full">
+            <CameraIcon
+              size={40}
+              className="text-blue-600 dark:text-blue-400"
+              color="#2563eb"
+            />
+          </View>
+          <View className="items-center">
+            <Text className="text-2xl font-bold text-center text-slate-900 dark:text-white mb-2">
+              Camera Access
+            </Text>
+            <Text className="text-center text-slate-500 dark:text-slate-400 leading-6">
+              To analyze the alginate film, we need access to your camera to
+              take a photo.
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            className="w-full bg-blue-600 py-4 rounded-2xl active:bg-blue-700 items-center justify-center shadow-lg shadow-blue-500/30"
+            onPress={requestPermission}
+          >
+            <Text className="text-white font-bold text-lg">Allow Camera</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text className="text-slate-400 font-medium">Not Now</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
@@ -43,7 +67,10 @@ export default function CameraScreen() {
           // Encode URI to safely pass it; simple URI passing usually works but let's be safe if we add params later
           router.push({
             pathname: "/analysis",
-            params: { imageUri: photo.uri },
+            params: {
+              imageUri: photo.uri,
+              diameter: diameter as string,
+            },
           });
         }
       } catch (error) {

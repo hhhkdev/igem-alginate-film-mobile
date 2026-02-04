@@ -32,7 +32,7 @@ export default function HomeScreen() {
         <View className="space-y-4 pt-4">
           <Pressable
             className="w-full bg-blue-600 hover:bg-blue-700 h-16 rounded-3xl flex-row justify-center items-center space-x-3 active:scale-[0.98] transition-transform shadow-lg shadow-blue-500/30"
-            onPress={() => router.push("/camera")}
+            onPress={() => router.push("/input-details")}
           >
             <Text className="text-white font-bold text-xl">Start Analysis</Text>
             <ArrowRight size={22} color="white" strokeWidth={2.5} />
