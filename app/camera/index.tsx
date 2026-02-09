@@ -26,7 +26,7 @@ export default function CameraScreen() {
     // Camera permissions are not granted yet.
     return (
       <SafeAreaView className="flex-1 bg-black justify-center items-center p-6">
-        <View className="bg-white dark:bg-slate-900 p-8 rounded-3xl items-center w-full max-w-sm space-y-6">
+        <View className="bg-white dark:bg-slate-900 p-8 rounded-3xl items-center w-full max-w-sm gap-y-6">
           <View className="bg-blue-100 dark:bg-blue-900/30 p-4 rounded-full">
             <CameraIcon
               size={40}
@@ -87,48 +87,50 @@ export default function CameraScreen() {
         facing="back"
         enableTorch={flash}
         ref={cameraRef}
+      />
+      <SafeAreaView
+        className="flex-1 justify-between p-6"
+        pointerEvents="box-none"
       >
-        <SafeAreaView className="flex-1 justify-between p-6">
-          {/* Top Bar */}
-          <View className="flex-row justify-between items-center bg-black/30 p-2 rounded-full backdrop-blur-md">
-            <TouchableOpacity
-              onPress={() => router.back()}
-              className="p-2 rounded-full bg-black/50"
-            >
-              <ArrowLeft color="white" size={24} />
-            </TouchableOpacity>
+        {/* Top Bar */}
+        <View className="flex-row justify-between items-center bg-black/30 p-2 rounded-full backdrop-blur-md">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="p-2 rounded-full bg-black/50"
+          >
+            <ArrowLeft color="white" size={24} />
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => setFlash(!flash)}
-              className="p-2 rounded-full bg-black/50"
-            >
-              {flash ? (
-                <Zap color="#fbbf24" size={24} />
-              ) : (
-                <ZapOff color="white" size={24} />
-              )}
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={() => setFlash(!flash)}
+            className="p-2 rounded-full bg-black/50"
+          >
+            {flash ? (
+              <Zap color="#fbbf24" size={24} />
+            ) : (
+              <ZapOff color="white" size={24} />
+            )}
+          </TouchableOpacity>
+        </View>
 
-          {/* Guide Overlay - Simple circle to guide user */}
-          <View className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 justify-center items-center pointer-events-none">
-            <View className="w-64 h-64 border-2 border-white/50 rounded-full border-dashed" />
-            <Text className="text-white/80 mt-4 text-sm font-medium bg-black/40 px-3 py-1 rounded-full overflow-hidden">
-              Center the film here
-            </Text>
-          </View>
+        {/* Guide Overlay - Simple circle to guide user */}
+        <View className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 justify-center items-center pointer-events-none">
+          <View className="w-64 h-64 border-2 border-white/50 rounded-full border-dashed" />
+          <Text className="text-white/80 mt-4 text-sm font-medium bg-black/40 px-3 py-1 rounded-full overflow-hidden">
+            Center the film here
+          </Text>
+        </View>
 
-          {/* Bottom Bar / Capture Button */}
-          <View className="flex-row justify-center items-center pb-8">
-            <TouchableOpacity
-              onPress={takePicture}
-              className="w-20 h-20 bg-white rounded-full border-4 border-gray-300 items-center justify-center shadow-lg active:scale-95 transition-transform"
-            >
-              <View className="w-16 h-16 bg-white rounded-full border-2 border-black/10" />
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-      </CameraView>
+        {/* Bottom Bar / Capture Button */}
+        <View className="flex-row justify-center items-center pb-8">
+          <TouchableOpacity
+            onPress={takePicture}
+            className="w-20 h-20 bg-white rounded-full border-4 border-gray-300 items-center justify-center shadow-lg active:scale-95 transition-transform"
+          >
+            <View className="w-16 h-16 bg-white rounded-full border-2 border-black/10" />
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     </View>
   );
 }

@@ -133,19 +133,19 @@ export default function AnalysisScreen() {
         className="absolute bottom-0 w-full bg-background rounded-t-3xl p-6 shadow-2xl"
       >
         <SafeAreaView edges={["bottom"]}>
-          <View className="space-y-4">
+          <View className="gap-y-4">
             {/* Header */}
             <View className="flex-row justify-between items-center">
               <Text className="text-xl font-bold text-foreground">
                 Analysis Result
               </Text>
               {/* Visual Legend */}
-              <View className="flex-row space-x-4">
-                <View className="flex-row items-center space-x-1">
+              <View className="flex-row gap-x-4">
+                <View className="flex-row items-center gap-x-1">
                   <View className="w-3 h-3 rounded-full bg-blue-500" />
                   <Text className="text-xs text-muted-foreground">Film</Text>
                 </View>
-                <View className="flex-row items-center space-x-1">
+                <View className="flex-row items-center gap-x-1">
                   <View className="w-3 h-3 rounded-full bg-red-500" />
                   <Text className="text-xs text-muted-foreground">Spot</Text>
                 </View>

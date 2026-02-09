@@ -52,7 +52,7 @@ export default function InputDetailsScreen() {
                 />
               </TouchableOpacity>
 
-              <View className="flex-row items-center space-x-3 mb-4">
+              <View className="flex-row items-center gap-x-3 mb-4">
                 <View className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-full">
                   <Ruler
                     size={28}
@@ -70,7 +70,7 @@ export default function InputDetailsScreen() {
                 calibrate the image analysis.
               </Text>
 
-              <View className="mt-10 space-y-2">
+              <View className="mt-10 gap-y-2">
                 <Text className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 pl-1">
                   Film Diameter
                 </Text>
@@ -100,7 +100,7 @@ export default function InputDetailsScreen() {
 
             <View className="pb-4">
               <TouchableOpacity
-                className={`w-full h-16 rounded-3xl flex-row justify-center items-center space-x-3 shadow-lg ${
+                className={`w-full h-16 rounded-3xl flex-row justify-center items-center gap-x-3 shadow-lg ${
                   diameter
                     ? "bg-blue-600 shadow-blue-500/30"
                     : "bg-gray-200 dark:bg-slate-800 shadow-none"

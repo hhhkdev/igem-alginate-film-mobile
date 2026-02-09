@@ -3,6 +3,12 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { LogBox } from "react-native";
+
+LogBox.ignoreLogs([
+  "SafeAreaView has been deprecated",
+  "[Reanimated] Reading from `value` during component render", // Temporary suppression if we can't fully fix strict mode noise
+]);
 
 export default function RootLayout() {
   return (

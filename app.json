@@ -1,5 +1,6 @@
 {
   "expo": {
+    "scheme": "igem-alginate",
     "name": "igem-alginate-film-mobile",
     "slug": "igem-alginate-film-mobile",
     "version": "1.0.0",
