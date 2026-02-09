@@ -58,7 +58,7 @@ export const ResizableCircle = ({
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [{ translateX: x.value }, { translateY: y.value }],
-    };
+    } as any;
   });
 
   const circleStyle = useAnimatedStyle(() => {
@@ -75,7 +75,7 @@ export const ResizableCircle = ({
   const handleStyle = useAnimatedStyle(() => {
     return {
       transform: [{ translateX: radius.value }, { translateY: 0 }], // Position handle at the right edge
-    };
+    } as any;
   });
 
   return (

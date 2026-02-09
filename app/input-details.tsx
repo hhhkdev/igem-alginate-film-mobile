@@ -35,7 +35,10 @@ export default function InputDetailsScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <TouchableWithoutFeedback
+          onPress={Keyboard.dismiss}
+          disabled={Platform.OS === "web"}
+        >
           <View className="flex-1 p-6 justify-between">
             <View>
               <TouchableOpacity
@@ -76,9 +79,13 @@ export default function InputDetailsScreen() {
                     className="flex-1 text-2xl font-bold text-slate-900 dark:text-white p-2"
                     placeholder="25.0"
                     placeholderTextColor="#94a3b8"
-                    keyboardType="numeric"
+                    keyboardType="decimal-pad"
                     value={diameter}
-                    onChangeText={setDiameter}
+                    onChangeText={(text) => {
+                      if (/^\d*\.?\d*$/.test(text)) {
+                        setDiameter(text);
+                      }
+                    }}
                     autoFocus
                   />
                   <Text className="text-xl font-medium text-slate-400 ml-2">
