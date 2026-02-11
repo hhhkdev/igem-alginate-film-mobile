@@ -17,14 +17,14 @@ export default function HomeScreen() {
             />
           </View>
           <Text className="text-4xl font-extrabold text-slate-900 dark:text-white text-center tracking-tight">
-            Alginate Model
+            알지네이트 모델
           </Text>
           <Text className="text-slate-500 dark:text-slate-400 text-center text-lg leading-7 px-4 font-medium">
-            Precision heavy metal detection{"\n"}
-            powered by{" "}
             <Text className="text-blue-600 dark:text-blue-400 font-semibold">
-              colorimetry
+              비색법(Colorimetry)
             </Text>
+            을 기반으로 한{"\n"}
+            정밀 중금속 검출
           </Text>
         </View>
 
@@ -34,12 +34,12 @@ export default function HomeScreen() {
             className="w-full bg-blue-600 hover:bg-blue-700 h-16 rounded-3xl flex-row justify-center items-center space-x-3 active:scale-[0.98] transition-transform shadow-lg shadow-blue-500/30"
             onPress={() => router.push("/input-details")}
           >
-            <Text className="text-white font-bold text-xl">Start Analysis</Text>
+            <Text className="text-white font-bold text-xl">분석 시작하기</Text>
             <ArrowRight size={22} color="white" strokeWidth={2.5} />
           </Pressable>
 
           <Text className="text-center text-slate-400 text-sm">
-            v1.0.0 • Offline Capable
+            v1.0.0 • 오프라인 사용 가능
           </Text>
         </View>
       </View>

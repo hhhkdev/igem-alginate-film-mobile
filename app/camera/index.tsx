@@ -14,7 +14,7 @@ import { cn } from "../../lib/utils"; // Make sure this path is correct based on
 export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [flash, setFlash] = useState(false);
-  const { diameter } = useLocalSearchParams();
+  const { method, filmDiameter, refDimension } = useLocalSearchParams();
   const cameraRef = useRef<CameraView>(null);
 
   if (!permission) {
@@ -36,11 +36,10 @@ export default function CameraScreen() {
           </View>
           <View className="items-center">
             <Text className="text-2xl font-bold text-center text-slate-900 dark:text-white mb-2">
-              Camera Access
+              카메라 접근 권한
             </Text>
             <Text className="text-center text-slate-500 dark:text-slate-400 leading-6">
-              To analyze the alginate film, we need access to your camera to
-              take a photo.
+              알지네이트 필름 분석을 위해 사진 촬영 권한이 필요합니다.
             </Text>
           </View>
 
@@ -48,11 +47,11 @@ export default function CameraScreen() {
             className="w-full bg-blue-600 py-4 rounded-2xl active:bg-blue-700 items-center justify-center shadow-lg shadow-blue-500/30"
             onPress={requestPermission}
           >
-            <Text className="text-white font-bold text-lg">Allow Camera</Text>
+            <Text className="text-white font-bold text-lg">카메라 허용</Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => router.back()}>
-            <Text className="text-slate-400 font-medium">Not Now</Text>
+            <Text className="text-slate-400 font-medium">나중에 하기</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -69,13 +68,15 @@ export default function CameraScreen() {
             pathname: "/analysis",
             params: {
               imageUri: photo.uri,
-              diameter: diameter as string,
+              method: method as string,
+              filmDiameter: filmDiameter as string,
+              refDimension: refDimension as string,
             },
           });
         }
       } catch (error) {
         console.error(error);
-        Alert.alert("Error", "Failed to take picture");
+        Alert.alert("Error", "사진 촬영에 실패했습니다.");
       }
     }
   };
@@ -117,7 +118,7 @@ export default function CameraScreen() {
         <View className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 justify-center items-center pointer-events-none">
           <View className="w-64 h-64 border-2 border-white/50 rounded-full border-dashed" />
           <Text className="text-white/80 mt-4 text-sm font-medium bg-black/40 px-3 py-1 rounded-full overflow-hidden">
-            Center the film here
+            필름을 중앙에 맞춰주세요
           </Text>
         </View>
 

@@ -30,7 +30,7 @@ export default function ResultScreen() {
           <View className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
           <View className="absolute bottom-4 left-6">
             <Text className="text-3xl font-bold text-foreground">
-              Analysis Complete
+              분석 완료
             </Text>
             <Text className="text-muted-foreground">
               {new Date().toLocaleDateString()}
@@ -66,24 +66,24 @@ export default function ResultScreen() {
               {analysis.message}
             </Text>
             <Text className="text-muted-foreground text-center">
-              Based on spot diameter measurement
+              반응 영역 측정 기준
             </Text>
           </View>
 
           {/* Detailed Stats */}
           <View className="bg-card rounded-2xl p-6 border border-border shadow-sm space-y-4">
             <Text className="text-lg font-semibold text-foreground mb-2">
-              Details
+              상세 결과
             </Text>
 
             <View className="flex-row justify-between items-center py-2 border-b border-border">
-              <Text className="text-muted-foreground">Spot Measured</Text>
+              <Text className="text-muted-foreground">측정 면적</Text>
               <Text className="font-mono font-bold text-foreground">
-                {result} mm
+                {result} mm²
               </Text>
             </View>
             <View className="flex-row justify-between items-center py-2 border-b border-border">
-              <Text className="text-muted-foreground">Est. Concentration</Text>
+              <Text className="text-muted-foreground">추정 농도</Text>
               <Text className="font-mono font-bold text-foreground">
                 {analysis.concentration}
               </Text>
@@ -98,7 +98,7 @@ export default function ResultScreen() {
             >
               <Home color="white" size={20} />
               <Text className="text-primary-foreground font-semibold text-lg ml-2">
-                Back to Home
+                홈으로 돌아가기
               </Text>
             </TouchableOpacity>
 
@@ -110,7 +110,7 @@ export default function ResultScreen() {
             >
               <Share2 color="black" size={20} />
               <Text className="text-secondary-foreground font-semibold text-lg ml-2">
-                Share Report
+                결과 공유하기
               </Text>
             </TouchableOpacity>
           </View>
