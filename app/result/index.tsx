@@ -12,10 +12,13 @@ import { analyzeHeavyMetal } from "../../lib/calculations";
 import { cn } from "../../lib/utils"; // Make sure this path is correct
 
 export default function ResultScreen() {
-  const { result, imageUri } = useLocalSearchParams();
-  const spotDiameter = parseFloat(result as string);
+  const { area, concentration, imageUri } = useLocalSearchParams();
 
-  const analysis = analyzeHeavyMetal(spotDiameter);
+  const resultArea = parseFloat(area as string) || 0;
+  const resultConcentration = parseFloat(concentration as string) || 0;
+
+  // Simple threshold logic for display - this should ideally match the logic in analysis or be passed
+  const isDetected = resultConcentration > 0;
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -42,13 +45,13 @@ export default function ResultScreen() {
           {/* Status Card */}
           <View
             className={cn(
-              "w-full rounded-2xl p-6 items-center shadow-lg border-2",
-              analysis.isDetected
+              "w-full rounded-2xl p-6 items-center shadow-sm border",
+              isDetected
                 ? "bg-red-50 border-destructive/20"
                 : "bg-green-50 border-green-500/20",
             )}
           >
-            {analysis.isDetected ? (
+            {isDetected ? (
               <AlertOctagon
                 size={48}
                 className="text-destructive mb-4"
@@ -63,7 +66,7 @@ export default function ResultScreen() {
             )}
 
             <Text className="text-2xl font-bold text-foreground text-center mb-1">
-              {analysis.message}
+              {isDetected ? "Heavy Metal Detected" : "Safe / Not Detected"}
             </Text>
             <Text className="text-muted-foreground text-center">
               반응 영역 측정 기준
@@ -79,13 +82,13 @@ export default function ResultScreen() {
             <View className="flex-row justify-between items-center py-2 border-b border-border">
               <Text className="text-muted-foreground">측정 면적</Text>
               <Text className="font-mono font-bold text-foreground">
-                {result} mm²
+                {resultArea} mm²
               </Text>
             </View>
             <View className="flex-row justify-between items-center py-2 border-b border-border">
               <Text className="text-muted-foreground">추정 농도</Text>
               <Text className="font-mono font-bold text-foreground">
-                {analysis.concentration}
+                {resultConcentration} units
               </Text>
             </View>
           </View>
@@ -93,7 +96,7 @@ export default function ResultScreen() {
           {/* Action Buttons */}
           <View className="space-y-3 pt-4">
             <TouchableOpacity
-              className="w-full bg-primary p-4 rounded-xl items-center flex-row justify-center space-x-2 active:opacity-90"
+              className="w-full bg-primary p-4 rounded-xl items-center flex-row justify-center space-x-2 active:opacity-90 shadow-sm"
               onPress={() => router.dismissAll()}
             >
               <Home color="white" size={20} />
@@ -103,7 +106,7 @@ export default function ResultScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              className="w-full bg-secondary p-4 rounded-xl items-center flex-row justify-center space-x-2 active:opacity-90"
+              className="w-full bg-secondary p-4 rounded-xl items-center flex-row justify-center space-x-2 active:opacity-90 shadow-sm"
               onPress={() => {
                 // Logic to share result
               }}

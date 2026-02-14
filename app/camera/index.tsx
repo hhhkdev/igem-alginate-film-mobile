@@ -44,7 +44,7 @@ export default function CameraScreen() {
           </View>
 
           <TouchableOpacity
-            className="w-full bg-blue-600 py-4 rounded-2xl active:bg-blue-700 items-center justify-center shadow-lg shadow-blue-500/30"
+            className="w-full bg-blue-600 py-4 rounded-2xl active:bg-blue-700 items-center justify-center shadow shadow-blue-500/30"
             onPress={requestPermission}
           >
             <Text className="text-white font-bold text-lg">카메라 허용</Text>
@@ -94,17 +94,17 @@ export default function CameraScreen() {
         pointerEvents="box-none"
       >
         {/* Top Bar */}
-        <View className="flex-row justify-between items-center bg-black/30 p-2 rounded-full backdrop-blur-md">
+        <View className="flex-row justify-between items-center bg-black/40 p-4 mx-4 mt-2 rounded-2xl backdrop-blur-md border border-white/10">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="p-2 rounded-full bg-black/50"
+            className="p-3 rounded-full bg-white/10 active:bg-white/20"
           >
             <ArrowLeft color="white" size={24} />
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => setFlash(!flash)}
-            className="p-2 rounded-full bg-black/50"
+            className="p-3 rounded-full bg-white/10 active:bg-white/20"
           >
             {flash ? (
               <Zap color="#fbbf24" size={24} />
@@ -126,7 +126,7 @@ export default function CameraScreen() {
         <View className="flex-row justify-center items-center pb-8">
           <TouchableOpacity
             onPress={takePicture}
-            className="w-20 h-20 bg-white rounded-full border-4 border-gray-300 items-center justify-center shadow-lg active:scale-95 transition-transform"
+            className="w-20 h-20 bg-white rounded-full border-4 border-gray-300 items-center justify-center shadow active:scale-95 transition-transform"
           >
             <View className="w-16 h-16 bg-white rounded-full border-2 border-black/10" />
           </TouchableOpacity>

@@ -188,7 +188,7 @@ export default function InputDetailsScreen() {
 
             <View className="pb-4">
               <TouchableOpacity
-                className={`w-full h-16 rounded-3xl flex-row justify-center items-center gap-x-3 shadow-lg ${
+                className={`w-full h-16 rounded-3xl flex-row justify-center items-center gap-x-3 shadow ${
                   filmDiameter &&
                   (method === "petri" ? petriDiameter : rulerLength)
                     ? "bg-blue-600 shadow-blue-500/30"

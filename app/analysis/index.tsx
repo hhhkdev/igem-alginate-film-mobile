@@ -186,7 +186,7 @@ export default function AnalysisScreen() {
         {/* Bottom Sheet Results */}
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          className="absolute bottom-0 w-full bg-white dark:bg-slate-900 rounded-t-3xl p-6 shadow-2xl"
+          className="absolute bottom-0 w-full bg-white dark:bg-slate-900 rounded-t-3xl p-6 shadow-lg"
         >
           <SafeAreaView edges={["bottom"]}>
             <View className="gap-y-4">
