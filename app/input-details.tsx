@@ -10,6 +10,7 @@ import {
   Alert,
 } from "react-native";
 import { router } from "expo-router";
+import { safeGoBack } from "../lib/navigation";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, Ruler } from "lucide-react-native";
@@ -65,7 +66,7 @@ export default function InputDetailsScreen() {
           <View className="flex-1 p-6 justify-between">
             <View>
               <TouchableOpacity
-                onPress={() => router.back()}
+                onPress={() => safeGoBack()}
                 className="w-10 h-10 bg-gray-100 dark:bg-slate-800 rounded-full items-center justify-center mb-8"
               >
                 <ArrowLeft

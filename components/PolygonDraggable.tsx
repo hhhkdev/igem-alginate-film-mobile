@@ -14,9 +14,32 @@ interface PolygonDraggableProps {
   isClosed: boolean;
   onPointsUpdate: (points: Point[]) => void;
   onClose: () => void;
+  onOpen: () => void;
   onAddPoint: (x: number, y: number) => void;
   containerWidth: number;
   containerHeight: number;
+}
+
+// 점과 선분 사이의 최소 거리를 계산
+function distToSegment(
+  px: number,
+  py: number,
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+): number {
+  const dx = bx - ax,
+    dy = by - ay;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.sqrt((px - ax) ** 2 + (py - ay) ** 2);
+
+  let t = ((px - ax) * dx + (py - ay) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+
+  const projX = ax + t * dx;
+  const projY = ay + t * dy;
+  return Math.sqrt((px - projX) ** 2 + (py - projY) ** 2);
 }
 
 export const PolygonDraggable = ({
@@ -24,6 +47,7 @@ export const PolygonDraggable = ({
   isClosed,
   onPointsUpdate,
   onClose,
+  onOpen,
   onAddPoint,
   containerWidth,
   containerHeight,
@@ -32,9 +56,36 @@ export const PolygonDraggable = ({
   const tapGesture = Gesture.Tap()
     .runOnJS(true)
     .onStart((e) => {
-      // 폴리곤이 닫히지 않은 상태일 때만 새로운 점 추가 가능
       if (!isClosed) {
+        // 폴리곤이 열려있으면 끝에 점 추가
         onAddPoint(e.x, e.y);
+      } else if (points.length >= 3) {
+        // 닫힌 다각형: 가장 가까운 변(edge)을 찾아 그 사이에 점 삽입
+        const TAP_THRESHOLD = 30; // 30px 이내의 탭만 인식
+        let minDist = Infinity;
+        let insertIndex = -1;
+
+        for (let i = 0; i < points.length; i++) {
+          const a = points[i];
+          const b = points[(i + 1) % points.length];
+          const dist = distToSegment(e.x, e.y, a.x, a.y, b.x, b.y);
+
+          if (dist < minDist) {
+            minDist = dist;
+            insertIndex = i + 1;
+          }
+        }
+
+        if (minDist < TAP_THRESHOLD && insertIndex >= 0) {
+          const newPoint: Point = {
+            id: `edge_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+            x: e.x,
+            y: e.y,
+          };
+          const newPoints = [...points];
+          newPoints.splice(insertIndex, 0, newPoint);
+          onPointsUpdate(newPoints);
+        }
       }
     });
 
@@ -44,6 +95,16 @@ export const PolygonDraggable = ({
   };
 
   const pointsString = points.map((p) => `${p.x},${p.y}`).join(" ");
+
+  const handleDeletePoint = (id: string) => {
+    const newPoints = points.filter((p) => p.id !== id);
+    onPointsUpdate(newPoints);
+
+    // 삭제 후 3개 미만이면 폴리곤 열기
+    if (isClosed && newPoints.length < 3) {
+      onOpen();
+    }
+  };
 
   return (
     <GestureDetector gesture={tapGesture}>
@@ -62,7 +123,7 @@ export const PolygonDraggable = ({
           {isClosed ? (
             <Polygon
               points={pointsString}
-              fill="rgba(239, 68, 68, 0.3)" // red-500 with opacity
+              fill="rgba(239, 68, 68, 0.3)"
               stroke="#ef4444"
               strokeWidth="2"
             />
@@ -74,9 +135,6 @@ export const PolygonDraggable = ({
               strokeWidth="2"
             />
           )}
-          {/* Render draggable handles for each point if needed */}
-          {/* Note: Svg doesn't support Gesture Handlers inside easily without referencing. 
-              We should render Views on top of SVG for handles. */}
         </Svg>
 
         {points.map((p, index) => (
@@ -88,6 +146,7 @@ export const PolygonDraggable = ({
             isFirst={index === 0}
             canClose={points.length > 2 && !isClosed}
             onClose={onClose}
+            onDelete={handleDeletePoint}
           />
         ))}
       </View>
@@ -102,6 +161,7 @@ interface DraggablePointProps {
   isFirst: boolean;
   canClose: boolean;
   onClose: () => void;
+  onDelete: (id: string) => void;
 }
 
 const DraggablePoint = ({
@@ -111,18 +171,18 @@ const DraggablePoint = ({
   isFirst,
   canClose,
   onClose,
+  onDelete,
 }: DraggablePointProps) => {
   const initialPos = useRef({ x: 0, y: 0 });
 
   // 점 이동(Drag) 제스처 핸들러
   const pan = Gesture.Pan()
     .runOnJS(true)
+    .minDistance(8)
     .onStart(() => {
-      // 드래그 시작 시 현재 점의 위치 저장
       initialPos.current = { x: point.x, y: point.y };
     })
     .onUpdate((e) => {
-      // 드래그 거리만큼 위치 업데이트하여 부모에게 알림
       onUpdate(
         point.id,
         initialPos.current.x + e.translationX,
@@ -130,27 +190,22 @@ const DraggablePoint = ({
       );
     });
 
-  // 점 탭(Tap) 제스처 핸들러 (첫 번째 점을 눌러 폴리곤 닫기용)
+  // 점 탭(Tap) 제스처 핸들러 (첫 번째 점: 닫기 / 그 외: 삭제)
   const tap = Gesture.Tap()
     .runOnJS(true)
+    .maxDuration(250)
     .onEnd(() => {
       if (isFirst && canClose) {
         onClose();
+      } else {
+        onDelete(point.id);
       }
     });
 
-  // 제스처 구성:
-  // 첫 번째 점이면서 폴리곤을 닫을 수 있는 상태(점 3개 이상)라면
-  // 드래그(Pan)와 탭(Tap)을 동시에 인식하도록 설정 (Simultaneous)
-  // 그렇지 않으면 드래그(Pan)만 인식
+  const gesture = Gesture.Race(pan, tap);
 
-  const gesture = isFirst && canClose ? Gesture.Simultaneous(pan, tap) : pan;
-
-  // 참고:
-  // Pan과 Tap을 동시에 사용할 때, 드래그 의도와 탭 의도를 구분하는 것이 중요합니다.
-  // Simultaneous를 사용하면 두 제스처가 모두 활성화될 수 있습니다.
-  // 여기서는 탭 동작이 "종료(onEnd)"에 트리거되므로, 드래그 없이 눌렀다 떼면 탭으로 인식되고,
-  // 움직이면 Pan이 업데이트를 발생시킵니다.
+  const HANDLE_SIZE = 24; // 터치 영역
+  const DOT_SIZE = 8; // 시각적 점 크기
 
   return (
     <GestureDetector gesture={gesture}>
@@ -158,14 +213,24 @@ const DraggablePoint = ({
         style={[
           styles.handle,
           {
-            left: point.x - 15, // Center the 30x30 touch area
-            top: point.y - 15,
+            width: HANDLE_SIZE,
+            height: HANDLE_SIZE,
+            left: point.x - HANDLE_SIZE / 2,
+            top: point.y - HANDLE_SIZE / 2,
           },
-          isFirst && !canClose ? styles.firstHandle : null,
           isFirst && canClose ? styles.closeHandle : null,
         ]}
       >
-        <View style={styles.dot} />
+        <View
+          style={[
+            styles.dot,
+            {
+              width: DOT_SIZE,
+              height: DOT_SIZE,
+              borderRadius: DOT_SIZE / 2,
+            },
+          ]}
+        />
       </View>
     </GestureDetector>
   );
@@ -174,27 +239,15 @@ const DraggablePoint = ({
 const styles = StyleSheet.create({
   handle: {
     position: "absolute",
-    width: 30,
-    height: 30,
     justifyContent: "center",
     alignItems: "center",
-    // backgroundColor: 'rgba(255,255,255,0.3)', // debug touch area
   },
   dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
     backgroundColor: "#ef4444",
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: "white",
   },
-  firstHandle: {
-    // maybe different style?
-  },
   closeHandle: {
-    // Indicate clickable to close
-    transform: [{ scale: 1.2 }],
-    // Maybe invalid style prop for View, but simple scale is fine if animated,
-    // here static style.
+    transform: [{ scale: 1.3 }],
   },
 });

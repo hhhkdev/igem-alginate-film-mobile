@@ -117,7 +117,7 @@ export const ResizableLine = ({
   });
 
   return (
-    <View style={StyleSheet.absoluteFill}>
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       {/* Visual Line */}
       <Animated.View style={betterLineStyle} />
 

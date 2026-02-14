@@ -87,20 +87,23 @@ export const ResizableCircle = ({
   });
 
   return (
-    <GestureDetector gesture={onDrag}>
-      <Animated.View style={[styles.container, animatedStyle]}>
-        <Animated.View style={[styles.circle, circleStyle]} />
-        {/* Center Point */}
-        <View style={[styles.center, { backgroundColor: color }]} />
+    <Animated.View style={[styles.container, animatedStyle]}>
+      <GestureDetector gesture={onDrag}>
+        <Animated.View style={[styles.circle, circleStyle]}>
+          {/* Hit Slop for easier grabbing if needed, but circle is usually big enough */}
+        </Animated.View>
+      </GestureDetector>
 
-        {/* Resize Handle */}
-        <GestureDetector gesture={onResize}>
-          <Animated.View style={[styles.handleContainer, handleStyle]}>
-            <View style={[styles.handle, { backgroundColor: color }]} />
-          </Animated.View>
-        </GestureDetector>
-      </Animated.View>
-    </GestureDetector>
+      {/* Center Point - Non-interactive visual */}
+      <View style={[styles.center, { backgroundColor: color }]} />
+
+      {/* Resize Handle */}
+      <GestureDetector gesture={onResize}>
+        <Animated.View style={[styles.handleContainer, handleStyle]}>
+          <View style={[styles.handle, { backgroundColor: color }]} />
+        </Animated.View>
+      </GestureDetector>
+    </Animated.View>
   );
 };
 
@@ -109,26 +112,35 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     left: 0,
-    alignItems: "center",
-    justifyContent: "center",
+    // width/height removed to let it be 0x0 and move via transform
+    // overflow visible allows children to be seen
   },
   circle: {
     borderWidth: 2,
     position: "absolute",
+    // circleStyle sets width/height/borderRadius/margins
   },
   center: {
     width: 6,
     height: 6,
     borderRadius: 3,
+    position: "absolute",
+    left: 0,
+    top: 0,
+    marginLeft: -3,
+    marginTop: -3,
+    pointerEvents: "none", // Don't block touches
   },
   handleContainer: {
     position: "absolute",
-    width: 30,
-    height: 30,
+    width: 40, // Increased touch area
+    height: 40,
     justifyContent: "center",
     alignItems: "center",
     left: 0,
     top: 0,
+    marginLeft: -20, // Center the handle container
+    marginTop: -20,
   },
   handle: {
     width: 16,
@@ -136,5 +148,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 2,
     borderColor: "white",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 2,
   },
 });
