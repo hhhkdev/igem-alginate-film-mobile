@@ -178,7 +178,7 @@ const DraggablePoint = ({
   // 점 이동(Drag) 제스처 핸들러
   const pan = Gesture.Pan()
     .runOnJS(true)
-    .minDistance(8)
+    .minDistance(1)
     .onStart(() => {
       initialPos.current = { x: point.x, y: point.y };
     })
@@ -246,6 +246,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#ef4444",
     borderWidth: 1.5,
     borderColor: "white",
+    elevation: 4,
   },
   closeHandle: {
     transform: [{ scale: 1.3 }],

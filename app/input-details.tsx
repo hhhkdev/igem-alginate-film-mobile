@@ -8,17 +8,19 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Alert,
+  StyleSheet,
 } from "react-native";
-import { router } from "expo-router";
-import { safeGoBack } from "../lib/navigation";
+import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
-import { ArrowLeft, ArrowRight, Ruler } from "lucide-react-native";
+import { ArrowLeft, ArrowRight } from "lucide-react-native";
+import { tokens } from "../lib/design-tokens";
 
 export default function InputDetailsScreen() {
+  const router = useRouter();
   const [method, setMethod] = useState<"petri" | "ruler">("petri");
-  const [filmDiameter, setFilmDiameter] = useState("25.0"); // Default 25mm
-  const [petriDiameter, setPetriDiameter] = useState("150.0"); // Default 150mm
+  const [filmDiameter, setFilmDiameter] = useState("25.0");
+  const [petriDiameter, setPetriDiameter] = useState("150.0");
   const [rulerLength, setRulerLength] = useState("");
 
   const handleNext = () => {
@@ -53,172 +55,157 @@ export default function InputDetailsScreen() {
     });
   };
 
+  const isReady =
+    !!filmDiameter && !!(method === "petri" ? petriDiameter : rulerLength);
+
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-slate-900">
+    <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
+        style={styles.flex1}
       >
         <TouchableWithoutFeedback
           onPress={Keyboard.dismiss}
           disabled={Platform.OS === "web"}
         >
-          <View className="flex-1 p-6 justify-between">
+          <View style={styles.content}>
             <View>
+              {/* Back Button */}
               <TouchableOpacity
-                onPress={() => safeGoBack()}
-                className="w-10 h-10 bg-gray-100 dark:bg-slate-800 rounded-full items-center justify-center mb-8"
+                onPress={() => router.back()}
+                style={styles.backButton}
               >
-                <ArrowLeft
-                  size={24}
-                  className="text-slate-900 dark:text-white"
-                  color="#334155"
-                />
+                <ArrowLeft size={24} color={tokens.color.iconDefault} />
               </TouchableOpacity>
 
-              <Text className="text-3xl font-extrabold text-slate-900 dark:text-white mb-3">
-                측정 설정
-              </Text>
-              <Text className="text-slate-500 dark:text-slate-400 text-lg leading-7 mb-6">
+              <Text style={styles.title}>측정 설정</Text>
+              <Text style={styles.subtitle}>
                 참조 방식(기준)을 선택하고 치수를 입력하세요.
               </Text>
 
               {/* Method Selection */}
-              <View className="flex-row bg-gray-100 dark:bg-slate-800 p-1 rounded-2xl mb-8">
+              <View style={styles.methodContainer}>
                 <TouchableOpacity
                   onPress={() => setMethod("petri")}
-                  className={`flex-1 py-3 items-center rounded-xl ${
-                    method === "petri"
-                      ? "bg-white dark:bg-slate-700 shadow-sm"
-                      : ""
-                  }`}
+                  style={[
+                    styles.methodButton,
+                    method === "petri" && styles.methodButtonActive,
+                  ]}
                 >
                   <Text
-                    className={`font-semibold ${
-                      method === "petri"
-                        ? "text-blue-600 dark:text-blue-400"
-                        : "text-slate-500 dark:text-slate-400"
-                    }`}
+                    style={[
+                      styles.methodText,
+                      method === "petri" && styles.methodTextActive,
+                    ]}
                   >
                     페트리 접시
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setMethod("ruler")}
-                  className={`flex-1 py-3 items-center rounded-xl ${
-                    method === "ruler"
-                      ? "bg-white dark:bg-slate-700 shadow-sm"
-                      : ""
-                  }`}
+                  style={[
+                    styles.methodButton,
+                    method === "ruler" && styles.methodButtonActive,
+                  ]}
                 >
                   <Text
-                    className={`font-semibold ${
-                      method === "ruler"
-                        ? "text-blue-600 dark:text-blue-400"
-                        : "text-slate-500 dark:text-slate-400"
-                    }`}
+                    style={[
+                      styles.methodText,
+                      method === "ruler" && styles.methodTextActive,
+                    ]}
                   >
                     자 (Ruler)
                   </Text>
                 </TouchableOpacity>
               </View>
 
-              <View className="gap-y-6">
+              {/* Inputs */}
+              <View style={styles.inputsContainer}>
                 {/* Film Diameter Input */}
-                <View className="gap-y-2">
-                  <Text className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 pl-1">
-                    필름 지름
-                  </Text>
-                  <View className="flex-row items-center w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>필름 지름</Text>
+                  <View style={styles.inputRow}>
                     <TextInput
-                      className="flex-1 text-xl font-bold text-slate-900 dark:text-white p-2"
+                      style={styles.textInput}
                       placeholder="25.0"
-                      placeholderTextColor="#94a3b8"
+                      placeholderTextColor={tokens.color.textPlaceholder}
                       keyboardType="decimal-pad"
                       value={filmDiameter}
                       onChangeText={setFilmDiameter}
                     />
-                    <Text className="text-lg font-medium text-slate-400 ml-2">
-                      mm
-                    </Text>
+                    <Text style={styles.unitText}>mm</Text>
                   </View>
                 </View>
 
-                {/* Conditional Input */}
-                {method === "petri" ? (
-                  <View className="gap-y-2">
-                    <Text className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 pl-1">
-                      페트리 접시 지름
-                    </Text>
-                    <View className="flex-row items-center w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
-                      <TextInput
-                        className="flex-1 text-xl font-bold text-slate-900 dark:text-white p-2"
-                        placeholder="150.0"
-                        placeholderTextColor="#94a3b8"
-                        keyboardType="decimal-pad"
-                        value={petriDiameter}
-                        onChangeText={setPetriDiameter}
-                      />
-                      <Text className="text-lg font-medium text-slate-400 ml-2">
-                        mm
-                      </Text>
-                    </View>
+                {/* Petri Dish Input */}
+                <View
+                  style={[
+                    styles.inputGroup,
+                    method !== "petri" && styles.hidden,
+                  ]}
+                >
+                  <Text style={styles.inputLabel}>페트리 접시 지름</Text>
+                  <View style={styles.inputRow}>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="150.0"
+                      placeholderTextColor={tokens.color.textPlaceholder}
+                      keyboardType="decimal-pad"
+                      value={petriDiameter}
+                      onChangeText={setPetriDiameter}
+                    />
+                    <Text style={styles.unitText}>mm</Text>
                   </View>
-                ) : (
-                  <View className="gap-y-2">
-                    <Text className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 pl-1">
-                      자(Ruler) 길이
-                    </Text>
-                    <View className="flex-row items-center w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
-                      <TextInput
-                        className="flex-1 text-xl font-bold text-slate-900 dark:text-white p-2"
-                        placeholder="예: 100" // No default for ruler as it varies
-                        placeholderTextColor="#94a3b8"
-                        keyboardType="decimal-pad"
-                        value={rulerLength}
-                        onChangeText={setRulerLength}
-                      />
-                      <Text className="text-lg font-medium text-slate-400 ml-2">
-                        mm
-                      </Text>
-                    </View>
+                </View>
+
+                {/* Ruler Length Input */}
+                <View
+                  style={[
+                    styles.inputGroup,
+                    method !== "ruler" && styles.hidden,
+                  ]}
+                >
+                  <Text style={styles.inputLabel}>자(Ruler) 길이</Text>
+                  <View style={styles.inputRow}>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="예: 100"
+                      placeholderTextColor={tokens.color.textPlaceholder}
+                      keyboardType="decimal-pad"
+                      value={rulerLength}
+                      onChangeText={setRulerLength}
+                    />
+                    <Text style={styles.unitText}>mm</Text>
                   </View>
-                )}
+                </View>
               </View>
             </View>
 
-            <View className="pb-4">
+            {/* Submit Button */}
+            <View style={styles.submitContainer}>
               <TouchableOpacity
-                className={`w-full h-16 rounded-3xl flex-row justify-center items-center gap-x-3 shadow ${
-                  filmDiameter &&
-                  (method === "petri" ? petriDiameter : rulerLength)
-                    ? "bg-blue-600 shadow-blue-500/30"
-                    : "bg-gray-200 dark:bg-slate-800 shadow-none"
-                }`}
+                style={[
+                  styles.submitButton,
+                  isReady
+                    ? styles.submitButtonActive
+                    : styles.submitButtonDisabled,
+                ]}
                 onPress={handleNext}
-                disabled={
-                  !filmDiameter ||
-                  !(method === "petri" ? petriDiameter : rulerLength)
-                }
+                disabled={!isReady}
               >
                 <Text
-                  className={`font-bold text-xl ${
-                    filmDiameter &&
-                    (method === "petri" ? petriDiameter : rulerLength)
-                      ? "text-white"
-                      : "text-gray-400 dark:text-slate-600"
-                  }`}
+                  style={[
+                    styles.submitText,
+                    isReady
+                      ? styles.submitTextActive
+                      : styles.submitTextDisabled,
+                  ]}
                 >
                   카메라 열기
                 </Text>
                 <ArrowRight
-                  size={24}
-                  color={
-                    filmDiameter &&
-                    (method === "petri" ? petriDiameter : rulerLength)
-                      ? "white"
-                      : "#94a3b8"
-                  }
+                  size={20}
+                  color={isReady ? "white" : tokens.color.textPlaceholder}
                   strokeWidth={2.5}
                 />
               </TouchableOpacity>
@@ -229,3 +216,117 @@ export default function InputDetailsScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  flex1: {
+    flex: 1,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: tokens.color.bgScreen,
+  },
+  content: {
+    flex: 1,
+    padding: tokens.spacing.screenPadding,
+    justifyContent: "space-between",
+  },
+  backButton: {
+    ...tokens.component.backButton,
+  },
+  title: {
+    ...tokens.font.title,
+    marginBottom: 12,
+  },
+  subtitle: {
+    ...tokens.font.subtitle,
+    marginBottom: 24,
+  },
+  methodContainer: {
+    flexDirection: "row",
+    backgroundColor: tokens.color.bgMuted,
+    padding: 4,
+    borderRadius: tokens.radius.toggleContainer,
+    marginBottom: 32,
+  },
+  methodButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderRadius: tokens.radius.toggleInner,
+  },
+  methodButtonActive: {
+    backgroundColor: tokens.color.bgPrimary,
+    ...tokens.shadow.toggleActive,
+  },
+  methodText: {
+    fontWeight: "600",
+    color: tokens.color.textMuted,
+  },
+  methodTextActive: {
+    color: tokens.color.accentBlue,
+  },
+  inputsContainer: {
+    gap: 24,
+  },
+  inputGroup: {
+    gap: 8,
+  },
+  hidden: {
+    display: "none",
+  },
+  inputLabel: {
+    ...tokens.font.sectionLabel,
+    paddingLeft: 4,
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    backgroundColor: tokens.color.bgPrimary,
+    ...tokens.border.card,
+    borderRadius: tokens.radius.card,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 20,
+    fontWeight: "700",
+    color: tokens.color.textPrimary,
+    padding: 8,
+  },
+  unitText: {
+    fontSize: 18,
+    fontWeight: "500",
+    color: tokens.color.textPlaceholder,
+    marginLeft: 8,
+  },
+  submitContainer: {
+    paddingBottom: 16,
+  },
+  submitButton: {
+    width: "100%",
+    height: tokens.button.ctaHeight,
+    borderRadius: tokens.radius.button,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+  },
+  submitButtonActive: {
+    backgroundColor: tokens.color.accentBlue,
+    ...tokens.shadow.cta,
+  },
+  submitButtonDisabled: {
+    backgroundColor: tokens.color.disabledBg,
+  },
+  submitText: {
+    ...tokens.font.ctaText,
+  },
+  submitTextActive: {
+    color: tokens.color.bgPrimary,
+  },
+  submitTextDisabled: {
+    color: tokens.color.disabledText,
+  },
+});

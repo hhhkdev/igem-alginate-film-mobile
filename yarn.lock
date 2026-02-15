@@ -2469,7 +2469,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/babel__core@npm:^7, @types/babel__core@npm:^7.1.14":
+"@types/babel__core@npm:*, @types/babel__core@npm:^7, @types/babel__core@npm:^7.1.14":
   version: 7.20.5
   resolution: "@types/babel__core@npm:7.20.5"
   dependencies:
@@ -2564,6 +2564,16 @@ __metadata:
   version: 2.0.4
   resolution: "@types/pako@npm:2.0.4"
   checksum: 5765bf8bc7e77ee141c454118f03e544b8f6cb51eb257d82dc5830feeab8cd00818af3a1eabefdfbe8dd3ae9916ed5403937bf1031a0ee51deea27fdf4dccdfb
+  languageName: node
+  linkType: hard
+
+"@types/react-refresh@npm:^0":
+  version: 0.14.7
+  resolution: "@types/react-refresh@npm:0.14.7"
+  dependencies:
+    "@types/babel__core": "npm:*"
+    csstype: "npm:^3.2.2"
+  checksum: f96088ecfcb12f07aa925a3f485ec3f573bdd2586980315d582fedef8ef16dc3f3aa141b26455364f86e9df5f6e50f156aa99d887f36ae089abdd2c5c6954048
   languageName: node
   linkType: hard
 
@@ -3573,7 +3583,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"csstype@npm:^3.0.2":
+"csstype@npm:^3.0.2, csstype@npm:^3.2.2":
   version: 3.2.3
   resolution: "csstype@npm:3.2.3"
   checksum: cd29c51e70fa822f1cecd8641a1445bed7063697469d35633b516e60fe8c1bde04b08f6c5b6022136bb669b64c63d4173af54864510fbb4ee23281801841a3ce
@@ -4601,6 +4611,7 @@ __metadata:
     "@types/babel__core": "npm:^7"
     "@types/pako": "npm:^2.0.4"
     "@types/react": "npm:~19.1.10"
+    "@types/react-refresh": "npm:^0"
     babel-preset-expo: "npm:~54.0.10"
     clsx: "npm:^2.1.1"
     expo: "npm:~54.0.33"
@@ -4624,6 +4635,7 @@ __metadata:
     react-native-svg: "npm:15.12.1"
     react-native-web: "npm:^0.21.0"
     react-native-worklets: "npm:0.5.1"
+    react-refresh: "npm:^0.18.0"
     tailwind-merge: "npm:^3.4.0"
     tailwindcss: "npm:^3.4.19"
     typescript: "npm:~5.9.2"
@@ -6776,6 +6788,13 @@ __metadata:
   version: 0.14.2
   resolution: "react-refresh@npm:0.14.2"
   checksum: 875b72ef56b147a131e33f2abd6ec059d1989854b3ff438898e4f9310bfcc73acff709445b7ba843318a953cb9424bcc2c05af2b3d80011cee28f25aef3e2ebb
+  languageName: node
+  linkType: hard
+
+"react-refresh@npm:^0.18.0":
+  version: 0.18.0
+  resolution: "react-refresh@npm:0.18.0"
+  checksum: 34a262f7fd803433a534f50deb27a148112a81adcae440c7d1cbae7ef14d21ea8f2b3d783e858cb7698968183b77755a38b4d4b5b1d79b4f4689c2f6d358fff2
   languageName: node
   linkType: hard
 

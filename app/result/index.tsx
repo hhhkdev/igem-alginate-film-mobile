@@ -1,14 +1,19 @@
 import { useLocalSearchParams, router } from "expo-router";
-import { View, Text, Image, TouchableOpacity, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { tokens } from "../../lib/design-tokens";
 import {
   CheckCircle,
   AlertTriangle,
   Home,
-  AlertOctagon,
+  ArrowLeft,
 } from "lucide-react-native";
-import { analyzeHeavyMetal } from "../../lib/calculations";
-import { cn } from "../../lib/utils"; // Make sure this path is correct
 
 export default function ResultScreen() {
   const { area, concentration } = useLocalSearchParams();
@@ -16,43 +21,48 @@ export default function ResultScreen() {
   const resultArea = parseFloat(area as string) || 0;
   const resultConcentration = parseFloat(concentration as string) || 0;
 
-  // Simple threshold logic for display
   const isDetected = resultConcentration > 0;
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-slate-900">
-      <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24 }}>
-        <View className="flex-1 items-center justify-center space-y-8">
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Back Button */}
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <ArrowLeft size={24} color={tokens.color.iconDefault} />
+        </TouchableOpacity>
+
+        <View style={styles.centerContent}>
           {/* Header Status Icon */}
           <View
-            className={cn(
-              "w-24 h-24 rounded-full items-center justify-center mb-4",
-              isDetected
-                ? "bg-red-100 dark:bg-red-900/30"
-                : "bg-blue-100 dark:bg-blue-900/30",
-            )}
+            style={[
+              styles.iconCircle,
+              isDetected ? styles.iconCircleRed : styles.iconCircleBlue,
+            ]}
           >
             {isDetected ? (
               <AlertTriangle
                 size={48}
-                className="text-red-500 dark:text-red-400"
+                color={tokens.color.accentRed}
                 strokeWidth={2.5}
               />
             ) : (
               <CheckCircle
                 size={48}
-                className="text-blue-500 dark:text-blue-400"
+                color={tokens.color.accentBlue}
                 strokeWidth={2.5}
               />
             )}
           </View>
 
           {/* Main Result Text */}
-          <View className="items-center space-y-2">
-            <Text className="text-3xl font-bold text-slate-900 dark:text-white text-center">
+          <View style={styles.resultTextGroup}>
+            <Text style={styles.resultTitle}>
               {isDetected ? "중금속 검출 의심" : "분석 완료"}
             </Text>
-            <Text className="text-slate-500 dark:text-slate-400 text-center text-base px-4">
+            <Text style={styles.resultDescription}>
               {isDetected
                 ? "반응 영역이 감지되었습니다.\n상세 수치를 확인해 주세요."
                 : "특이한 반응 영역이 감지되지 않았습니다.\n안전한 상태로 판단됩니다."}
@@ -60,72 +70,177 @@ export default function ResultScreen() {
           </View>
 
           {/* Detailed Stats Card */}
-          <View className="w-full bg-slate-50 dark:bg-slate-800 rounded-2xl p-6 space-y-4 border border-slate-100 dark:border-slate-700/50">
-            <Text className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">
-              분석 상세 결과
-            </Text>
+          <View style={styles.statsCard}>
+            <Text style={styles.statsHeader}>분석 상세 결과</Text>
 
-            <View className="flex-row justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700">
-              <Text className="text-slate-600 dark:text-slate-300 font-medium">
-                측정 날짜
-              </Text>
-              <Text className="text-slate-900 dark:text-white font-medium">
+            <View style={styles.statRow}>
+              <Text style={styles.statLabel}>측정 날짜</Text>
+              <Text style={styles.statValue}>
                 {new Date().toLocaleDateString()}
               </Text>
             </View>
 
-            <View className="flex-row justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700">
-              <Text className="text-slate-600 dark:text-slate-300 font-medium">
-                반응 면적
-              </Text>
-              <View className="flex-row items-baseline gap-x-1">
-                <Text className="text-xl font-bold text-slate-900 dark:text-white">
-                  {resultArea}
-                </Text>
-                <Text className="text-sm text-slate-500">mm²</Text>
+            <View style={[styles.statRow, styles.statRowBorder]}>
+              <Text style={styles.statLabel}>반응 면적</Text>
+              <View style={styles.statValueRow}>
+                <Text style={styles.statValueBold}>{resultArea}</Text>
+                <Text style={styles.statUnit}>mm²</Text>
               </View>
             </View>
 
-            <View className="flex-row justify-between items-center py-2">
-              <Text className="text-slate-600 dark:text-slate-300 font-medium">
-                CuSO₄ 추정 농도
-              </Text>
-              <View className="flex-row items-baseline gap-x-1">
+            <View style={styles.statRow}>
+              <Text style={styles.statLabel}>CuSO₄ 추정 농도</Text>
+              <View style={styles.statValueRow}>
                 <Text
-                  className={cn(
-                    "text-xl font-bold",
-                    isDetected
-                      ? "text-red-500 dark:text-red-400"
-                      : "text-slate-900 dark:text-white",
-                  )}
+                  style={[
+                    styles.statValueBold,
+                    isDetected && styles.statValueRed,
+                  ]}
                 >
                   {resultConcentration > 0.0001
                     ? resultConcentration.toFixed(4)
                     : "0"}
                 </Text>
-                <Text className="text-sm text-slate-500">%</Text>
+                <Text style={styles.statUnit}>%</Text>
               </View>
             </View>
           </View>
         </View>
 
-        {/* Action Buttons */}
-        <View className="w-full pt-8 pb-4">
+        {/* Home Button */}
+        <View style={styles.bottomAction}>
           <TouchableOpacity
-            className="w-full bg-slate-900 dark:bg-white p-4 rounded-xl items-center flex-row justify-center space-x-2 active:opacity-90 shadow-sm"
+            style={styles.homeButton}
             onPress={() => {
-              // Reset navigation stack to home
               router.dismissAll();
               router.replace("/");
             }}
           >
-            <Home className="text-white dark:text-slate-900" size={20} />
-            <Text className="text-white dark:text-slate-900 font-bold text-lg ml-2">
-              홈으로 돌아가기
-            </Text>
+            <Home size={20} color="white" />
+            <Text style={styles.homeButtonText}>홈으로 돌아가기</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: tokens.color.bgScreen,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: tokens.spacing.screenPadding,
+  },
+  backButton: {
+    ...tokens.component.backButton,
+  },
+  centerContent: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 32,
+  },
+  iconCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  iconCircleRed: {
+    backgroundColor: tokens.color.accentRedBg,
+  },
+  iconCircleBlue: {
+    backgroundColor: tokens.color.accentBlueBg,
+  },
+  resultTextGroup: {
+    alignItems: "center",
+    gap: 8,
+  },
+  resultTitle: {
+    ...tokens.font.title,
+    textAlign: "center",
+  },
+  resultDescription: {
+    ...tokens.font.subtitle,
+    textAlign: "center",
+    paddingHorizontal: 16,
+  },
+  statsCard: {
+    width: "100%",
+    backgroundColor: tokens.color.bgPrimary,
+    borderRadius: tokens.radius.card,
+    padding: 24,
+    gap: 16,
+    ...tokens.shadow.card,
+    ...tokens.border.card,
+  },
+  statsHeader: {
+    ...tokens.font.sectionLabel,
+    marginBottom: 8,
+  },
+  statRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  statRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: tokens.color.borderDefault,
+    borderTopWidth: 1,
+    borderTopColor: tokens.color.borderDefault,
+    paddingVertical: 12,
+  },
+  statLabel: {
+    color: tokens.color.textSecondary,
+    fontWeight: "500",
+    fontSize: 15,
+  },
+  statValue: {
+    color: tokens.color.textPrimary,
+    fontWeight: "500",
+    fontSize: 15,
+  },
+  statValueRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 4,
+  },
+  statValueBold: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: tokens.color.textPrimary,
+  },
+  statValueRed: {
+    color: tokens.color.accentRed,
+  },
+  statUnit: {
+    fontSize: 14,
+    color: tokens.color.textMuted,
+  },
+  bottomAction: {
+    width: "100%",
+    paddingTop: 32,
+    paddingBottom: 16,
+  },
+  homeButton: {
+    width: "100%",
+    backgroundColor: tokens.color.textPrimary,
+    height: tokens.button.ctaHeight,
+    borderRadius: tokens.radius.button,
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
+    ...tokens.shadow.ctaDark,
+  },
+  homeButtonText: {
+    ...tokens.font.ctaText,
+    marginLeft: 4,
+  },
+});

@@ -41,7 +41,10 @@
     "@types/babel__core": "^7",
     "@types/pako": "^2.0.4",
     "@types/react": "~19.1.10",
+    "@types/react-refresh": "^0",
     "babel-preset-expo": "~54.0.10",
+    "react-refresh": "^0.18.0",
     "typescript": "~5.9.2"
-  }
+  },
+  "packageManager": "yarn@4.12.0"
 }

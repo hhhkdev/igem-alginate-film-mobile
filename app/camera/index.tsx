@@ -175,11 +175,40 @@ export default function CameraScreen() {
 
         {/* Guide Overlay - Simple circle to guide user */}
         <View
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 justify-center items-center"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
           pointerEvents="none"
         >
-          <View className="w-64 h-64 border-2 border-white/50 rounded-full border-dashed" />
-          <Text className="text-white/80 mt-4 text-sm font-medium bg-black/40 px-3 py-1 rounded-full overflow-hidden">
+          <View
+            style={{
+              width: 256,
+              height: 256,
+              borderWidth: 2,
+              borderColor: "rgba(255,255,255,0.5)",
+              borderRadius: 128,
+              borderStyle: "dashed",
+            }}
+          />
+          <Text
+            style={{
+              color: "rgba(255,255,255,0.8)",
+              marginTop: 16,
+              fontSize: 14,
+              fontWeight: "500",
+              backgroundColor: "rgba(0,0,0,0.4)",
+              paddingHorizontal: 12,
+              paddingVertical: 4,
+              borderRadius: 999,
+              overflow: "hidden",
+            }}
+          >
             필름을 중앙에 맞춰주세요
           </Text>
         </View>

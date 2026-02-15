@@ -154,5 +154,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 2,
     borderColor: "white",
+    elevation: 4,
   },
 });
