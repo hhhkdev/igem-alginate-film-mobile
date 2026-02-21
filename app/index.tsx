@@ -29,8 +29,8 @@ export default function HomeScreen() {
           <View style={styles.iconCircle}>
             <Scan size={52} color={tokens.color.accentBlue} strokeWidth={1.8} />
           </View>
-          <Text style={styles.title}>알지네이트 모델</Text>
-          <Text style={styles.subtitle}>정밀 중금속 검출</Text>
+          <Text style={styles.title}>Alginate Model</Text>
+          <Text style={styles.subtitle}>Precise Heavy Metal Detection</Text>
         </View>
 
         {/* Action Section */}
@@ -39,7 +39,7 @@ export default function HomeScreen() {
             style={styles.startButton}
             onPress={() => router.push("/input-details")}
           >
-            <Text style={styles.startButtonText}>분석 시작하기</Text>
+            <Text style={styles.startButtonText}>Start Analysis</Text>
             <ArrowRight size={20} color="white" strokeWidth={2.5} />
           </Pressable>
 
@@ -54,18 +54,18 @@ export default function HomeScreen() {
                 <Clock size={18} color={tokens.color.textSecondary} />
               </View>
               <View>
-                <Text style={styles.historyButtonTitle}>분석 기록</Text>
+                <Text style={styles.historyButtonTitle}>Analysis History</Text>
                 <Text style={styles.historyButtonSub}>
-                  {historyCount > 0
-                    ? `${historyCount}건의 기록`
-                    : "기록이 없습니다"}
+                  {historyCount > 0 ? `${historyCount} records` : "No records"}
                 </Text>
               </View>
             </View>
             <ArrowRight size={18} color={tokens.color.textPlaceholder} />
           </TouchableOpacity>
 
-          <Text style={styles.versionText}>v1.0.0 • 오프라인 사용 가능</Text>
+          <Text style={styles.versionText}>
+            v1.0.0 • Offline usage available
+          </Text>
         </View>
       </View>
     </SafeAreaView>

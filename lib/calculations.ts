@@ -128,8 +128,8 @@ export function analyzeConcentration(input: AnalysisInput): AnalysisResult {
     redAreaMm2,
     isDetected,
     message: isDetected
-      ? `CuSO₄ 검출: ${concentrationPercent.toFixed(4)}%`
-      : "검출되지 않음",
+      ? `CuSO₄ Detected: ${concentrationPercent.toFixed(4)}%`
+      : "Not Detected",
   };
 }
 

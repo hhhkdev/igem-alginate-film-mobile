@@ -60,28 +60,28 @@ export default function ResultScreen() {
           {/* Main Result Text */}
           <View style={styles.resultTextGroup}>
             <Text style={styles.resultTitle}>
-              {isDetected ? "중금속 검출 의심" : "분석 완료"}
+              {isDetected ? "Heavy Metal Detected" : "Analysis Complete"}
             </Text>
             <Text style={styles.resultDescription}>
               {isDetected
-                ? "반응 영역이 감지되었습니다.\n상세 수치를 확인해 주세요."
-                : "특이한 반응 영역이 감지되지 않았습니다.\n안전한 상태로 판단됩니다."}
+                ? "Reaction area detected.\nPlease check the detailed metrics."
+                : "No unusual reaction area detected.\nJudged to be in a safe state."}
             </Text>
           </View>
 
           {/* Detailed Stats Card */}
           <View style={styles.statsCard}>
-            <Text style={styles.statsHeader}>분석 상세 결과</Text>
+            <Text style={styles.statsHeader}>Detailed Analysis Results</Text>
 
             <View style={styles.statRow}>
-              <Text style={styles.statLabel}>측정 날짜</Text>
+              <Text style={styles.statLabel}>Measurement Date</Text>
               <Text style={styles.statValue}>
                 {new Date().toLocaleDateString()}
               </Text>
             </View>
 
             <View style={[styles.statRow, styles.statRowBorder]}>
-              <Text style={styles.statLabel}>반응 면적</Text>
+              <Text style={styles.statLabel}>Reaction Area</Text>
               <View style={styles.statValueRow}>
                 <Text style={styles.statValueBold}>{resultArea}</Text>
                 <Text style={styles.statUnit}>mm²</Text>
@@ -89,7 +89,9 @@ export default function ResultScreen() {
             </View>
 
             <View style={styles.statRow}>
-              <Text style={styles.statLabel}>CuSO₄ 추정 농도</Text>
+              <Text style={styles.statLabel}>
+                Estimated CuSO₄ Concentration
+              </Text>
               <View style={styles.statValueRow}>
                 <Text
                   style={[
@@ -117,7 +119,7 @@ export default function ResultScreen() {
             }}
           >
             <Home size={20} color="white" />
-            <Text style={styles.homeButtonText}>홈으로 돌아가기</Text>
+            <Text style={styles.homeButtonText}>Return to Home</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

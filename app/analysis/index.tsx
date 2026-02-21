@@ -186,7 +186,7 @@ export default function AnalysisScreen() {
             {isDetecting && (
               <View style={s.loadingOverlay}>
                 <ActivityIndicator size="large" color="#ffffff" />
-                <Text style={s.loadingText}>빨간 영역 감지 중...</Text>
+                <Text style={s.loadingText}>Detecting red region...</Text>
               </View>
             )}
 
@@ -256,11 +256,11 @@ export default function AnalysisScreen() {
                 <Text style={s.tooltipText}>
                   {isRefMode
                     ? referenceMethod === "petri"
-                      ? "파란색 원을 페트리 접시에 맞추세요"
-                      : "파란색 선을 기준 물체에 맞추세요"
+                      ? "Align the blue circle with the Petri dish"
+                      : "Align the blue line with the reference object"
                     : isPolygonClosed
-                      ? "점을 드래그하여 영역을 조정하세요"
-                      : "탭하여 빨간 영역의 점을 찍으세요"}
+                      ? "Drag points to adjust the region"
+                      : "Tap to mark points on the red region"}
                 </Text>
               </View>
 
@@ -307,7 +307,7 @@ export default function AnalysisScreen() {
                       isRefMode && s.modeToggleTextActive,
                     ]}
                   >
-                    기준 조정
+                    Adjust Reference
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -327,7 +327,7 @@ export default function AnalysisScreen() {
                       isPolyMode && s.modeToggleTextActive,
                     ]}
                   >
-                    영역 지정
+                    Set Region
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -337,10 +337,10 @@ export default function AnalysisScreen() {
                 <View style={s.instructionDot} />
                 <Text style={s.instructionText}>
                   {isRefMode
-                    ? "파란색 기준 도구를 이미지 위에서 조정하세요.\n완료 후 '영역 지정' 모드로 전환하세요."
+                    ? "Adjust the blue reference tool on the image.\nSwitch to 'Set Region' mode when done."
                     : isPolygonClosed
-                      ? "영역이 설정되었습니다.\n점을 드래그하거나 탭하여 삭제하세요."
-                      : "빨간색 반응 영역을 탭하여 점을 찍으세요.\n첫 번째 점을 다시 누르면 닫힙니다."}
+                      ? "Region set.\nDrag or tap points to delete."
+                      : "Tap the red reaction area to mark points.\nTap the first point again to close."}
                 </Text>
               </View>
 
@@ -348,7 +348,9 @@ export default function AnalysisScreen() {
               <View style={s.specsRow}>
                 <View style={s.specCard}>
                   <Text style={s.specLabel}>
-                    {referenceMethod === "petri" ? "페트리 지름" : "자 길이"}
+                    {referenceMethod === "petri"
+                      ? "Petri Diameter"
+                      : "Ruler Length"}
                   </Text>
                   <View style={s.specValueRow}>
                     <Text style={s.specValue}>{refValueMm}</Text>
@@ -356,7 +358,7 @@ export default function AnalysisScreen() {
                   </View>
                 </View>
                 <View style={s.specCard}>
-                  <Text style={s.specLabel}>필름 지름</Text>
+                  <Text style={s.specLabel}>Film Diameter</Text>
                   <View style={s.specValueRow}>
                     <Text style={s.specValue}>{filmDiameterMm}</Text>
                     <Text style={s.specUnit}>mm</Text>
@@ -373,7 +375,9 @@ export default function AnalysisScreen() {
                   ]}
                 >
                   <View style={s.resultCardHeader}>
-                    <Text style={s.resultCardLabel}>CuSO₄ 추정 농도</Text>
+                    <Text style={s.resultCardLabel}>
+                      Estimated CuSO₄ Concentration
+                    </Text>
                     <Text style={s.resultCardMeta}>T = 1.0mm</Text>
                   </View>
                   <View style={s.resultCardMainRow}>
@@ -384,13 +388,15 @@ export default function AnalysisScreen() {
                   </View>
                   <View style={s.resultCardDetails}>
                     <View style={s.resultDetailRow}>
-                      <Text style={s.resultDetailLabel}>면적 증가율</Text>
+                      <Text style={s.resultDetailLabel}>
+                        Area Increase Rate
+                      </Text>
                       <Text style={s.resultDetailValue}>
                         {areaIncreasePercent.toFixed(2)} %
                       </Text>
                     </View>
                     <View style={s.resultDetailRow}>
-                      <Text style={s.resultDetailLabel}>반응 면적</Text>
+                      <Text style={s.resultDetailLabel}>Reaction Area</Text>
                       <Text style={s.resultDetailValue}>
                         {areaMm.toFixed(2)} mm²
                       </Text>
@@ -401,7 +407,7 @@ export default function AnalysisScreen() {
                 <View style={s.resultPlaceholder}>
                   <Crosshair size={24} color="#94a3b8" />
                   <Text style={s.resultPlaceholderText}>
-                    빨간 영역을 지정하면 결과가 표시됩니다
+                    Specify the red region to see results
                   </Text>
                 </View>
               )}
@@ -439,7 +445,7 @@ export default function AnalysisScreen() {
                       s.saveButtonTextDisabled,
                   ]}
                 >
-                  결과 저장하기
+                  Save Results
                 </Text>
               </TouchableOpacity>
             </ScrollView>

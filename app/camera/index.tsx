@@ -38,8 +38,8 @@ export default function CameraScreen() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       Alert.alert(
-        "권한 필요",
-        "사진을 선택하려면 갤러리 접근 권한이 필요합니다.",
+        "Permission Required",
+        "Gallery access is required to select photos.",
       );
       return;
     }
@@ -84,10 +84,10 @@ export default function CameraScreen() {
           </View>
           <View className="items-center">
             <Text className="text-2xl font-bold text-center text-slate-900 dark:text-white mb-2">
-              카메라 접근 권한
+              Camera Permission
             </Text>
             <Text className="text-center text-slate-500 dark:text-slate-400 leading-6">
-              알지네이트 필름 분석을 위해 사진 촬영 권한이 필요합니다.
+              Camera access is required for alginate film analysis.
             </Text>
           </View>
 
@@ -95,11 +95,11 @@ export default function CameraScreen() {
             className="w-full bg-blue-600 py-4 rounded-2xl active:bg-blue-700 items-center justify-center shadow shadow-blue-500/30"
             onPress={requestPermission}
           >
-            <Text className="text-white font-bold text-lg">카메라 허용</Text>
+            <Text className="text-white font-bold text-lg">Allow Camera</Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => safeGoBack()}>
-            <Text className="text-slate-400 font-medium">나중에 하기</Text>
+            <Text className="text-slate-400 font-medium">Maybe Later</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -126,7 +126,7 @@ export default function CameraScreen() {
         }
       } catch (error) {
         console.error(error);
-        Alert.alert("Error", "사진 촬영에 실패했습니다.");
+        Alert.alert("Error", "Failed to take a photo.");
       }
     }
   };
@@ -209,7 +209,7 @@ export default function CameraScreen() {
               overflow: "hidden",
             }}
           >
-            필름을 중앙에 맞춰주세요
+            Please align the film in the center
           </Text>
         </View>
 

@@ -29,18 +29,18 @@ export default function InputDetailsScreen() {
     const rLen = parseFloat(rulerLength);
 
     if (!filmDiameter || isNaN(fDia) || fDia <= 0) {
-      Alert.alert("입력 오류", "유효한 필름 지름을 입력해주세요.");
+      Alert.alert("Input Error", "Please enter a valid film diameter.");
       return;
     }
 
     if (method === "petri") {
       if (!petriDiameter || isNaN(pDia) || pDia <= 0) {
-        Alert.alert("입력 오류", "유효한 페트리 접시 지름을 입력해주세요.");
+        Alert.alert("Input Error", "Please enter a valid Petri dish diameter.");
         return;
       }
     } else {
       if (!rulerLength || isNaN(rLen) || rLen <= 0) {
-        Alert.alert("입력 오류", "유효한 자(Ruler) 길이를 입력해주세요.");
+        Alert.alert("Input Error", "Please enter a valid ruler length.");
         return;
       }
     }
@@ -78,9 +78,9 @@ export default function InputDetailsScreen() {
                 <ArrowLeft size={24} color={tokens.color.iconDefault} />
               </TouchableOpacity>
 
-              <Text style={styles.title}>측정 설정</Text>
+              <Text style={styles.title}>Measurement Settings</Text>
               <Text style={styles.subtitle}>
-                참조 방식(기준)을 선택하고 치수를 입력하세요.
+                Select a reference method and enter dimensions.
               </Text>
 
               {/* Method Selection */}
@@ -98,7 +98,7 @@ export default function InputDetailsScreen() {
                       method === "petri" && styles.methodTextActive,
                     ]}
                   >
-                    페트리 접시
+                    Petri Dish
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -114,7 +114,7 @@ export default function InputDetailsScreen() {
                       method === "ruler" && styles.methodTextActive,
                     ]}
                   >
-                    자 (Ruler)
+                    Ruler
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -123,7 +123,7 @@ export default function InputDetailsScreen() {
               <View style={styles.inputsContainer}>
                 {/* Film Diameter Input */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>필름 지름</Text>
+                  <Text style={styles.inputLabel}>Film Diameter</Text>
                   <View style={styles.inputRow}>
                     <TextInput
                       style={styles.textInput}
@@ -144,7 +144,7 @@ export default function InputDetailsScreen() {
                     method !== "petri" && styles.hidden,
                   ]}
                 >
-                  <Text style={styles.inputLabel}>페트리 접시 지름</Text>
+                  <Text style={styles.inputLabel}>Petri Dish Diameter</Text>
                   <View style={styles.inputRow}>
                     <TextInput
                       style={styles.textInput}
@@ -165,11 +165,11 @@ export default function InputDetailsScreen() {
                     method !== "ruler" && styles.hidden,
                   ]}
                 >
-                  <Text style={styles.inputLabel}>자(Ruler) 길이</Text>
+                  <Text style={styles.inputLabel}>Ruler Length</Text>
                   <View style={styles.inputRow}>
                     <TextInput
                       style={styles.textInput}
-                      placeholder="예: 100"
+                      placeholder="e.g. 100"
                       placeholderTextColor={tokens.color.textPlaceholder}
                       keyboardType="decimal-pad"
                       value={rulerLength}
@@ -201,7 +201,7 @@ export default function InputDetailsScreen() {
                       : styles.submitTextDisabled,
                   ]}
                 >
-                  카메라 열기
+                  Open Camera
                 </Text>
                 <ArrowRight
                   size={20}

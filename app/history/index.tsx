@@ -27,7 +27,7 @@ export default function HistoryScreen() {
   const handleClearHistory = async () => {
     if (Platform.OS === "web") {
       const confirmed = window.confirm(
-        "모든 분석 기록을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.",
+        "Are you sure you want to delete all analysis history?\nThis action cannot be undone.",
       );
       if (confirmed) {
         await clearHistory();
@@ -35,12 +35,12 @@ export default function HistoryScreen() {
       }
     } else {
       Alert.alert(
-        "기록 삭제",
-        "모든 분석 기록을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.",
+        "Delete History",
+        "Are you sure you want to delete all analysis history?\nThis action cannot be undone.",
         [
-          { text: "취소", style: "cancel" },
+          { text: "Cancel", style: "cancel" },
           {
-            text: "삭제",
+            text: "Delete",
             style: "destructive",
             onPress: async () => {
               await clearHistory();
@@ -62,14 +62,14 @@ export default function HistoryScreen() {
         >
           <ArrowLeft size={24} color={tokens.color.iconDefault} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>분석 기록</Text>
+        <Text style={styles.headerTitle}>Analysis History</Text>
         {history.length > 0 ? (
           <TouchableOpacity
             onPress={handleClearHistory}
             style={styles.clearButton}
           >
             <Trash2 size={14} color={tokens.color.accentRed} />
-            <Text style={styles.clearButtonText}>전체 삭제</Text>
+            <Text style={styles.clearButtonText}>Delete All</Text>
           </TouchableOpacity>
         ) : (
           <View style={styles.headerSpacer} />
@@ -82,9 +82,9 @@ export default function HistoryScreen() {
           <View style={styles.emptyIconCircle}>
             <FileX size={40} color="#cbd5e1" />
           </View>
-          <Text style={styles.emptyTitle}>기록이 없습니다</Text>
+          <Text style={styles.emptyTitle}>No records</Text>
           <Text style={styles.emptySubtitle}>
-            분석을 완료하면 여기에 기록이 저장됩니다
+            Records will be saved here after completing an analysis
           </Text>
         </View>
       ) : (
@@ -97,7 +97,7 @@ export default function HistoryScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Text style={styles.countLabel}>
-            총 {history.length}건의 분석 기록
+            Total {history.length} analysis records
           </Text>
 
           {history.map((item) => (
@@ -132,10 +132,10 @@ export default function HistoryScreen() {
                   {item.concentration.toFixed(4)} %
                 </Text>
                 <Text style={styles.historyMeta}>
-                  반응 면적: {item.area.toFixed(1)} mm²
+                  Reaction Area: {item.area.toFixed(1)} mm²
                 </Text>
                 <Text style={styles.historyDate}>
-                  {new Date(item.date).toLocaleDateString("ko-KR", {
+                  {new Date(item.date).toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
