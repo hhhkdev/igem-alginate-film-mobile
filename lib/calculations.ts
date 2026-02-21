@@ -10,18 +10,18 @@
  *
  * 여기서:
  *   C = 농도 (%)
- *   T = 필름 두께 (mm) — 상수로 취급
- *   Area increase (%) = (반응 면적 / 원래 필름 면적) × 100
+ *   T = 필름 두께 (mm) — 상수로 취급 (기본 0.02mm)
+ *   Area increase (%) = ((최종 반응 면적 - 원래 필름 면적) / 원래 필름 면적) × 100
  */
 
 // ─── 상수 ────────────────────────────────────────────
 
-/** 필름 두께 (mm) — 일정하다고 가정 */
-const FILM_THICKNESS_MM = 1.0;
+/** 필름 두께 (mm) — 일정하다고 가정 (보고서 기준 0.005 ~ 0.035 구간, 기본값 0.02) */
+const FILM_THICKNESS_MM = 0.02;
 
 /** CuSO₄ 계수 */
 const CUSO4 = {
-  a: { coeff: 35190, constant: -96479 }, // a(C) = 35190·ln(C) − 96479
+  a: { coeff: -35190, constant: -96479 }, // a(C) = -35190·ln(C) − 96479 (그래프 수식 반영)
   b: { coeff: 2037.8, constant: 5645.6 }, // b(C) = 2037.8·ln(C) + 5645.6
   c: { coeff: -31.43, constant: -86.72 }, // c(C) = −31.43·ln(C) − 86.72
 };
@@ -32,11 +32,11 @@ const CUSO4 = {
  * 면적 증가율(%)과 필름 두께(T)로부터 CuSO₄ 농도(C, %)를 역산합니다.
  *
  * 공식 전개:
- *   AreaInc = (35190·ln(C) − 96479)·T² + (2037.8·ln(C) + 5645.6)·T + (−31.43·ln(C) − 86.72)
- *   AreaInc = ln(C)·(35190·T² + 2037.8·T − 31.43) + (−96479·T² + 5645.6·T − 86.72)
+ *   AreaInc = (-35190·ln(C) − 96479)·T² + (2037.8·ln(C) + 5645.6)·T + (−31.43·ln(C) − 86.72)
+ *   AreaInc = ln(C)·(-35190·T² + 2037.8·T − 31.43) + (−96479·T² + 5645.6·T − 86.72)
  *
- *   ln(C) = (AreaInc − (−96479·T² + 5645.6·T − 86.72)) / (35190·T² + 2037.8·T − 31.43)
- *   ln(C) = (AreaInc + 96479·T² − 5645.6·T + 86.72) / (35190·T² + 2037.8·T − 31.43)
+ *   ln(C) = (AreaInc − (−96479·T² + 5645.6·T − 86.72)) / (-35190·T² + 2037.8·T − 31.43)
+ *   ln(C) = (AreaInc + 96479·T² − 5645.6·T + 86.72) / (-35190·T² + 2037.8·T − 31.43)
  *   C = e^(ln(C))
  */
 export function solveConcentration(
@@ -83,6 +83,8 @@ export interface AnalysisResult {
   areaIncreasePercent: number;
   /** 추정 CuSO₄ 농도 (%) */
   concentrationPercent: number;
+  /** 추정 CuSO₄ 농도 (ppm) */
+  concentrationPpm: number;
   /** 원래 필름 면적 (mm²) */
   filmAreaMm2: number;
   /** 반응 면적 (mm²) */
@@ -108,9 +110,9 @@ export function analyzeConcentration(input: AnalysisInput): AnalysisResult {
   const filmAreaMm2 = Math.PI * filmRadius * filmRadius;
 
   // 면적 증가율 (%)
-  // 반응 면적이 필름 면적 대비 얼마나 되는지
+  // (최종 반응 면적 - 원래 필름 면적) / 원래 필름 면적 * 100
   const areaIncreasePercent =
-    filmAreaMm2 > 0 ? (redAreaMm2 / filmAreaMm2) * 100 : 0;
+    filmAreaMm2 > 0 ? ((redAreaMm2 - filmAreaMm2) / filmAreaMm2) * 100 : 0;
 
   // CuSO₄ 농도 역산
   const concentrationPercent = solveConcentration(
@@ -118,17 +120,20 @@ export function analyzeConcentration(input: AnalysisInput): AnalysisResult {
     filmThicknessMm,
   );
 
+  const concentrationPpm = concentrationPercent * 10000;
+
   // 검출 판정 (농도 > 0.001% 이상이면 검출)
   const isDetected = concentrationPercent > 0.001;
 
   return {
     areaIncreasePercent,
     concentrationPercent,
+    concentrationPpm,
     filmAreaMm2,
     redAreaMm2,
     isDetected,
     message: isDetected
-      ? `CuSO₄ Detected: ${concentrationPercent.toFixed(4)}%`
+      ? `CuSO₄ Detected: ${concentrationPpm.toFixed(1)} ppm`
       : "Not Detected",
   };
 }

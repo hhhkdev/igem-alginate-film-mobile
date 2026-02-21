@@ -111,7 +111,7 @@ export default function AnalysisScreen() {
 
     return {
       areaMm,
-      concentration: analysis.concentrationPercent,
+      concentration: analysis.concentrationPpm,
       areaIncreasePercent: analysis.areaIncreasePercent,
       isDetected: analysis.isDetected,
       scale,
@@ -378,13 +378,13 @@ export default function AnalysisScreen() {
                     <Text style={s.resultCardLabel}>
                       Estimated CuSO₄ Concentration
                     </Text>
-                    <Text style={s.resultCardMeta}>T = 1.0mm</Text>
+                    <Text style={s.resultCardMeta}>T = 0.02mm</Text>
                   </View>
                   <View style={s.resultCardMainRow}>
                     <Text style={s.resultCardValue}>
-                      {concentration > 0.0001 ? concentration.toFixed(4) : "0"}
+                      {concentration > 1 ? concentration.toFixed(1) : "0"}
                     </Text>
-                    <Text style={s.resultCardUnit}>%</Text>
+                    <Text style={s.resultCardUnit}>ppm</Text>
                   </View>
                   <View style={s.resultCardDetails}>
                     <View style={s.resultDetailRow}>
@@ -432,7 +432,7 @@ export default function AnalysisScreen() {
                     pathname: "/result",
                     params: {
                       area: areaMm.toFixed(2),
-                      concentration: concentration.toFixed(2),
+                      concentration: concentration.toFixed(1),
                       imageUri: currentImageUri as string,
                     },
                   });

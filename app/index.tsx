@@ -4,16 +4,22 @@ import {
   Pressable,
   TouchableOpacity,
   StyleSheet,
+  Alert,
+  Platform,
+  ToastAndroid,
+  Image,
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Scan, ArrowRight, Clock } from "lucide-react-native";
+import { Scan, ArrowRight, Clock, Map } from "lucide-react-native";
 import { tokens } from "../lib/design-tokens";
 import { getHistory } from "../lib/history";
 import { useCallback, useState } from "react";
+import { useToast } from "../components/ToastProvider";
 
 export default function HomeScreen() {
   const [historyCount, setHistoryCount] = useState(0);
+  const { showToast } = useToast();
 
   useFocusEffect(
     useCallback(() => {
@@ -26,11 +32,11 @@ export default function HomeScreen() {
       <View style={styles.inner}>
         {/* Header Section */}
         <View style={styles.headerSection}>
-          <View style={styles.iconCircle}>
-            <Scan size={52} color={tokens.color.accentBlue} strokeWidth={1.8} />
-          </View>
-          <Text style={styles.title}>Alginate Model</Text>
-          <Text style={styles.subtitle}>Precise Heavy Metal Detection</Text>
+          <Image
+            source={require("../assets/logo-vertical.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
         </View>
 
         {/* Action Section */}
@@ -39,28 +45,34 @@ export default function HomeScreen() {
             style={styles.startButton}
             onPress={() => router.push("/input-details")}
           >
-            <Text style={styles.startButtonText}>Start Analysis</Text>
+            <Text style={styles.startButtonText}>MEASURE</Text>
             <ArrowRight size={20} color="white" strokeWidth={2.5} />
           </Pressable>
 
-          {/* History Button */}
+          {/* Map View Button */}
+          <Pressable
+            style={styles.mapButton}
+            onPress={() => {
+              showToast(
+                "Map View will be available in a future update",
+                "info",
+              );
+            }}
+          >
+            <Text style={styles.mapButtonText}>Data Map</Text>
+            <Map size={20} color={tokens.color.accentBlue} strokeWidth={2.5} />
+          </Pressable>
+
+          {/* History Button (Demoted Hierarchy) */}
           <TouchableOpacity
-            style={styles.historyButton}
+            style={styles.historyTextButton}
             onPress={() => router.push("/history")}
             activeOpacity={0.7}
           >
-            <View style={styles.historyButtonLeft}>
-              <View style={styles.historyIconCircle}>
-                <Clock size={18} color={tokens.color.textSecondary} />
-              </View>
-              <View>
-                <Text style={styles.historyButtonTitle}>Analysis History</Text>
-                <Text style={styles.historyButtonSub}>
-                  {historyCount > 0 ? `${historyCount} records` : "No records"}
-                </Text>
-              </View>
-            </View>
-            <ArrowRight size={18} color={tokens.color.textPlaceholder} />
+            <Clock size={16} color={tokens.color.textMuted} />
+            <Text style={styles.historyTextButtonLabel}>
+              Analysis History {historyCount > 0 ? `(${historyCount})` : ""}
+            </Text>
           </TouchableOpacity>
 
           <Text style={styles.versionText}>
@@ -89,22 +101,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 16,
   },
-  iconCircle: {
-    backgroundColor: tokens.color.accentBlueLight,
-    padding: 28,
-    borderRadius: tokens.radius.pill,
-    marginBottom: 8,
-  },
-  title: {
-    ...tokens.font.title,
-    fontSize: 32,
-    textAlign: "center",
-  },
-  subtitle: {
-    ...tokens.font.subtitle,
-    fontSize: 18,
-    textAlign: "center",
-    paddingHorizontal: 16,
+  logo: {
+    width: 280,
+    height: 280,
   },
   actionSection: {
     gap: 16,
@@ -120,44 +119,42 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 12,
-    ...tokens.shadow.cta,
   },
   startButtonText: {
     ...tokens.font.ctaText,
   },
-  historyButton: {
+  mapButton: {
     width: "100%",
     backgroundColor: tokens.color.bgPrimary,
-    borderRadius: tokens.radius.card,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    borderWidth: 1.5,
+    borderColor: tokens.color.accentBlue,
+    height: tokens.button.ctaHeight,
+    borderRadius: tokens.radius.button,
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    ...tokens.shadow.card,
-    ...tokens.border.card,
-  },
-  historyButtonLeft: {
-    flexDirection: "row",
+    justifyContent: "center",
     alignItems: "center",
     gap: 12,
   },
-  historyIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: tokens.radius.thumbnail,
-    backgroundColor: tokens.color.bgLight,
+  mapButtonText: {
+    ...tokens.font.ctaText,
+    color: tokens.color.accentBlue,
+  },
+  historyTextButton: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: tokens.color.bgMuted,
+    borderRadius: tokens.radius.pill,
+    gap: 8,
+    marginTop: 8,
   },
-  historyButtonTitle: {
-    ...tokens.font.cardValue,
-    fontSize: 15,
-    marginBottom: 2,
-  },
-  historyButtonSub: {
-    ...tokens.font.small,
-    fontSize: 13,
+  historyTextButtonLabel: {
+    ...tokens.font.subtitle,
+    fontSize: 14,
+    color: tokens.color.textSecondary,
+    fontWeight: "500",
   },
   versionText: {
     textAlign: "center",

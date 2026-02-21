@@ -21,7 +21,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { cn } from "../../lib/utils";
 import { setAnalysisImage } from "../../lib/temp-storage";
-import { safeGoBack } from "../../lib/navigation";
+import { safeGoBack, webBlur } from "../../lib/navigation";
 
 export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -53,6 +53,7 @@ export default function CameraScreen() {
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const uri = result.assets[0].uri;
       setAnalysisImage(uri);
+      webBlur();
 
       router.push({
         pathname: "/analysis",
@@ -113,6 +114,7 @@ export default function CameraScreen() {
         if (photo) {
           // Store image in temp storage to avoid URL length limits
           setAnalysisImage(photo.uri);
+          webBlur();
 
           router.push({
             pathname: "/analysis",

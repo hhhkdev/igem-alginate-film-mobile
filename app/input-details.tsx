@@ -5,12 +5,13 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  TouchableWithoutFeedback,
+  Pressable,
   Keyboard,
   Alert,
   StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { safeGoBack } from "../lib/navigation";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react-native";
@@ -64,15 +65,16 @@ export default function InputDetailsScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.flex1}
       >
-        <TouchableWithoutFeedback
+        <Pressable
           onPress={Keyboard.dismiss}
           disabled={Platform.OS === "web"}
+          style={styles.flex1}
         >
           <View style={styles.content}>
             <View>
               {/* Back Button */}
               <TouchableOpacity
-                onPress={() => router.back()}
+                onPress={() => safeGoBack()}
                 style={styles.backButton}
               >
                 <ArrowLeft size={24} color={tokens.color.iconDefault} />
@@ -211,7 +213,7 @@ export default function InputDetailsScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </TouchableWithoutFeedback>
+        </Pressable>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

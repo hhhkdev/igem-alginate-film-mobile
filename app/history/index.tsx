@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, Trash2, Clock, FileX } from "lucide-react-native";
 import { tokens } from "../../lib/design-tokens";
 import { getHistory, clearHistory, AnalysisResult } from "../../lib/history";
+import { safeGoBack } from "../../lib/navigation";
 import { useCallback, useState } from "react";
 
 export default function HistoryScreen() {
@@ -57,7 +58,7 @@ export default function HistoryScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => safeGoBack()}
           style={styles.backButton}
         >
           <ArrowLeft size={24} color={tokens.color.iconDefault} />
@@ -109,7 +110,7 @@ export default function HistoryScreen() {
                   pathname: "/result",
                   params: {
                     area: item.area.toFixed(2),
-                    concentration: item.concentration.toFixed(4),
+                    concentration: item.concentration.toFixed(1),
                   },
                 });
               }}
@@ -129,7 +130,10 @@ export default function HistoryScreen() {
               )}
               <View style={styles.flex1}>
                 <Text style={styles.historyConcentration}>
-                  {item.concentration.toFixed(4)} %
+                  {item.concentration > 1
+                    ? item.concentration.toFixed(1)
+                    : (item.concentration * 10000).toFixed(1)}{" "}
+                  ppm
                 </Text>
                 <Text style={styles.historyMeta}>
                   Reaction Area: {item.area.toFixed(1)} mm²
@@ -191,8 +195,8 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.color.accentRedBg,
   },
   clearButtonText: {
-    color: tokens.color.accentRed,
     ...tokens.font.small,
+    color: tokens.color.accentRed,
   },
   // Empty state
   emptyState: {

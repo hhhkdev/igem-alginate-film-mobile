@@ -28,7 +28,7 @@ export async function detectRedRegion(
     );
 
     if (!manipulated.base64) {
-      console.warn("base64 데이터를 가져올 수 없습니다.");
+      console.warn("Could not retrieve base64 data.");
       return [];
     }
 
@@ -54,7 +54,7 @@ export async function detectRedRegion(
     // ── Step 4: 가장 큰 연결 컴포넌트 선택 ──
     const largest = findLargestCluster(cleanMask, width, height);
     if (largest.length < 5) {
-      console.log("충분히 큰 빨간 영역을 찾을 수 없습니다.");
+      console.log("Could not find a large enough red region.");
       return [];
     }
 
@@ -77,7 +77,7 @@ export async function detectRedRegion(
       y: p.y * scaleY,
     }));
   } catch (error) {
-    console.error("빨간 영역 감지 실패:", error);
+    console.error("Red region detection failed:", error);
     return [];
   }
 }
@@ -598,7 +598,7 @@ function decodePNGToRGBA(
 
     return { data: rgba, width, height };
   } catch (e) {
-    console.error("PNG 디코딩 실패:", e);
+    console.error("PNG decoding failed:", e);
     return null;
   }
 }

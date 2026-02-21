@@ -7,6 +7,8 @@
  *   ...tokens.shadow.card,
  */
 
+import { Platform } from "react-native";
+
 // ─── Border Radius ────────────────────────────────────
 
 const radius = {
@@ -31,34 +33,54 @@ const radius = {
 const shadow = {
   /** 카드에 사용되는 미세한 그림자 */
   card: {
-    shadowColor: "#000" as const,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
+    ...Platform.select({
+      web: { boxShadow: "0px 1px 3px rgba(0, 0, 0, 0.04)" as any },
+      default: {
+        shadowColor: "#000" as const,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 3,
+      },
+    }),
     elevation: 1,
   },
   /** CTA 버튼의 파란 강조 그림자 */
   cta: {
-    shadowColor: "#3b82f6" as const,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
+    ...Platform.select({
+      web: { boxShadow: "0px 4px 8px rgba(59, 130, 246, 0.25)" as any },
+      default: {
+        shadowColor: "#3b82f6" as const,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+      },
+    }),
     elevation: 3,
   },
   /** 탭/토글 내 활성 버튼 */
   toggleActive: {
-    shadowColor: "#000" as const,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 2,
+    ...Platform.select({
+      web: { boxShadow: "0px 1px 2px rgba(0, 0, 0, 0.06)" as any },
+      default: {
+        shadowColor: "#000" as const,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 2,
+      },
+    }),
     elevation: 1,
   },
   /** 다크 배경 위 CTA 버튼 */
   ctaDark: {
-    shadowColor: "#000" as const,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    ...Platform.select({
+      web: { boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.08)" as any },
+      default: {
+        shadowColor: "#000" as const,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+      },
+    }),
     elevation: 2,
   },
 };

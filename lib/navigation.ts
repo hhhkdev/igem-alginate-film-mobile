@@ -1,12 +1,24 @@
 import { router } from "expo-router";
+import { Platform } from "react-native";
 
 /**
- * 안전한 뒤로가기: 이전 화면이 있으면 뒤로 가고, 없으면 홈(/)으로 이동합니다.
+ * Safe go back: Go back to the previous screen if possible, otherwise navigate to home (/).
  */
 export function safeGoBack() {
+  webBlur();
   if (router.canGoBack()) {
     router.back();
   } else {
     router.replace("/");
+  }
+}
+
+/**
+ * Removes focus from the currently active element on Web to prevent 'aria-hidden' warnings
+ * when navigating away from a screen with a focused element (like a button).
+ */
+export function webBlur() {
+  if (Platform.OS === "web" && typeof document !== "undefined") {
+    (document.activeElement as HTMLElement)?.blur?.();
   }
 }

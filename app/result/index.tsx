@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { safeGoBack } from "../../lib/navigation";
 import { tokens } from "../../lib/design-tokens";
 import {
   CheckCircle,
@@ -28,7 +29,7 @@ export default function ResultScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Back Button */}
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => safeGoBack()}
           style={styles.backButton}
         >
           <ArrowLeft size={24} color={tokens.color.iconDefault} />
@@ -99,11 +100,11 @@ export default function ResultScreen() {
                     isDetected && styles.statValueRed,
                   ]}
                 >
-                  {resultConcentration > 0.0001
-                    ? resultConcentration.toFixed(4)
+                  {resultConcentration > 1
+                    ? resultConcentration.toFixed(1)
                     : "0"}
                 </Text>
-                <Text style={styles.statUnit}>%</Text>
+                <Text style={styles.statUnit}>ppm</Text>
               </View>
             </View>
           </View>
