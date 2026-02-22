@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
-import { Text, StyleSheet, SafeAreaView, View } from "react-native";
+import { Text, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -19,6 +20,7 @@ interface ToastProps {
 }
 
 export function Toast({ visible, message, type = "info", onHide }: ToastProps) {
+  const insets = useSafeAreaInsets();
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(20);
 
@@ -66,21 +68,23 @@ export function Toast({ visible, message, type = "info", onHide }: ToastProps) {
   }
 
   return (
-    <SafeAreaView style={styles.container} pointerEvents="none">
+    <View
+      style={[styles.container, { bottom: Math.max(insets.bottom, 16) + 32 }]}
+      pointerEvents="none"
+    >
       <Animated.View
         style={[styles.toast, { backgroundColor: bgColor }, animatedStyle]}
       >
         <Icon size={20} color={color} />
         <Text style={[styles.message, { color }]}>{message}</Text>
       </Animated.View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    bottom: 24, // Positioned near bottom
     left: 0,
     right: 0,
     alignItems: "center",
