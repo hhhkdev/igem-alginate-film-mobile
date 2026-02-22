@@ -5,6 +5,17 @@ module.exports = {
   darkMode: "class",
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["Pretendard-Regular", "sans-serif"],
+        black: ["Pretendard-Black", "sans-serif"],
+        bold: ["Pretendard-Bold", "sans-serif"],
+        extrabold: ["Pretendard-ExtraBold", "sans-serif"],
+        extralight: ["Pretendard-ExtraLight", "sans-serif"],
+        light: ["Pretendard-Light", "sans-serif"],
+        medium: ["Pretendard-Medium", "sans-serif"],
+        semibold: ["Pretendard-SemiBold", "sans-serif"],
+        thin: ["Pretendard-Thin", "sans-serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

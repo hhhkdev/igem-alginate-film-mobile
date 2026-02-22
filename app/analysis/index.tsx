@@ -376,7 +376,7 @@ export default function AnalysisScreen() {
                 >
                   <View style={s.resultCardHeader}>
                     <Text style={s.resultCardLabel}>
-                      Estimated CuSO₄ Concentration
+                      Estimated Concentration
                     </Text>
                     <Text style={s.resultCardMeta}>T = 0.02mm</Text>
                   </View>

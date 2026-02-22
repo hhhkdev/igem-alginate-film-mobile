@@ -166,46 +166,47 @@ const color = {
 const font = {
   /** 화면 제목 */
   title: {
+    fontFamily: "Pretendard-ExtraBold",
     fontSize: 28,
-    fontWeight: "800" as const,
     color: color.textPrimary,
     letterSpacing: -0.3,
   },
   /** 화면 부제목 / 설명 */
   subtitle: {
+    fontFamily: "Pretendard-Medium",
     fontSize: 16,
-    fontWeight: "500" as const,
     color: color.textMuted,
     lineHeight: 24,
   },
   /** CTA 버튼 텍스트 */
   ctaText: {
+    fontFamily: "Pretendard-Bold",
     fontSize: 17,
-    fontWeight: "700" as const,
     color: color.bgPrimary,
   },
   /** 섹션/카테고리 헤더 라벨 */
   sectionLabel: {
+    fontFamily: "Pretendard-Bold",
     fontSize: 12,
-    fontWeight: "700" as const,
     color: color.textPlaceholder,
     textTransform: "uppercase" as const,
     letterSpacing: 1,
   },
   /** 카드 내 주요 숫자/값 */
   cardValue: {
+    fontFamily: "Pretendard-Bold",
     fontSize: 17,
-    fontWeight: "700" as const,
     color: color.textPrimary,
   },
   /** 카드 내 보조 텍스트 */
   cardCaption: {
+    fontFamily: "Pretendard-Medium",
     fontSize: 13,
-    fontWeight: "500" as const,
     color: color.textSecondary,
   },
   /** 작은 보조 텍스트 (날짜, 단위) */
   small: {
+    fontFamily: "Pretendard-Regular",
     fontSize: 12,
     color: color.textPlaceholder,
   },

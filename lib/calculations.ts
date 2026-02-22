@@ -16,8 +16,8 @@
 
 // ─── 상수 ────────────────────────────────────────────
 
-/** 필름 두께 (mm) — 일정하다고 가정 (보고서 기준 0.005 ~ 0.035 구간, 기본값 0.02) */
-const FILM_THICKNESS_MM = 0.02;
+/** 필름 두께 (mm) — 일정하다고 가정 (보고서 기준 0.005 ~ 0.035 구간, 설정값 0.024) */
+const FILM_THICKNESS_MM = 0.024;
 
 /** CuSO₄ 계수 */
 const CUSO4 = {
@@ -111,12 +111,15 @@ export function analyzeConcentration(input: AnalysisInput): AnalysisResult {
 
   // 면적 증가율 (%)
   // (최종 반응 면적 - 원래 필름 면적) / 원래 필름 면적 * 100
-  const areaIncreasePercent =
+  let areaIncreasePercent =
     filmAreaMm2 > 0 ? ((redAreaMm2 - filmAreaMm2) / filmAreaMm2) * 100 : 0;
 
-  // CuSO₄ 농도 역산
+  // 측정 또는 인식 오차로 인해 반응 면적이 초기 면적보다 작게 계산되어 음수(마이너스)가 될 수 없도록 보정
+  areaIncreasePercent = Math.max(0, areaIncreasePercent);
+
+  // CuSO₄ 농도 역산 (공식 파라미터는 백분율 100 단위가 아닌 ratio(비율, 예: 1.5)를 사용함)
   const concentrationPercent = solveConcentration(
-    areaIncreasePercent,
+    areaIncreasePercent / 100,
     filmThicknessMm,
   );
 
@@ -133,7 +136,7 @@ export function analyzeConcentration(input: AnalysisInput): AnalysisResult {
     redAreaMm2,
     isDetected,
     message: isDetected
-      ? `CuSO₄ Detected: ${concentrationPpm.toFixed(1)} ppm`
+      ? `CuSO₄ Detected: ${concentrationPpm.toFixed(3)} ppm`
       : "Not Detected",
   };
 }
