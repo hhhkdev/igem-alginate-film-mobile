@@ -2,18 +2,126 @@ import * as ImageManipulator from "expo-image-manipulator";
 import pako from "pako";
 
 /**
- * ImageJ 스타일의 빨간색 영역 감지 알고리즘
+ * 최적화된 빨간색 영역 감지 알고리즘 (Otsu + Convex Hull)
  *
  * 개선된 알고리즘:
  * 1. 이미지를 적절한 크기로 축소 (100x100)
  * 2. PNG → 픽셀 디코딩 (pako)
- * 3. RGB → HSV 변환하여 색상(Hue) 기반으로 빨간 영역 1차 마스킹
- * 4. Sobel 그래디언트 기반 경계 강화 — 색상 경계가 뚜렷한 지점까지만 포함
- * 5. Morphological 연산 (침식 → 팽창)으로 노이즈 제거
- * 6. 연결 컴포넌트(BFS)로 가장 큰 클러스터 선택
- * 7. 클러스터의 Convex Hull로 다각형 생성
+ * 3. RGB 데이터로부터 강력한 Redness 수치 도출: max(0, R - max(G, B))
+ * 4. Otsu's Method를 사용해 주변 조명에 구애받지 않는 가변 임계값(Threshold) 자동 도출 및 마스킹
+ * 5. Morphological 연산 (침식 -> 팽창)으로 노이즈 제거
+ * 6. 연결 컴포넌트(BFS)로 주요 필름(가장 큰 클러스터) 영역 확정
+ * 7. Monotone Chain 알고리즘으로 깔끔하고 완벽한 볼록 다각형(Convex Polygon) 생성
  */
 export async function detectRedRegion(
+  imageUri: string,
+  displayWidth: number,
+  displayHeight: number,
+): Promise<{ id: string; x: number; y: number }[]> {
+  const apiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+  if (apiKey) {
+    try {
+      console.log("Attempting Gemini API for red detection...");
+      const result = await detectRedRegionGemini(
+        imageUri,
+        displayWidth,
+        displayHeight,
+        apiKey,
+      );
+      if (result && result.length >= 3) {
+        return result;
+      }
+    } catch (e) {
+      console.error("Gemini API failed, falling back to local detection", e);
+    }
+  }
+  return detectRedRegionLocal(imageUri, displayWidth, displayHeight);
+}
+
+async function detectRedRegionGemini(
+  imageUri: string,
+  displayWidth: number,
+  displayHeight: number,
+  apiKey: string,
+): Promise<{ id: string; x: number; y: number }[]> {
+  const manipulated = await ImageManipulator.manipulateAsync(
+    imageUri,
+    [{ resize: { width: 512 } }],
+    { format: ImageManipulator.SaveFormat.JPEG, compress: 0.8, base64: true },
+  );
+
+  if (!manipulated.base64) {
+    throw new Error("Could not retrieve base64 data for Gemini.");
+  }
+
+  const prompt = `
+You are an expert computer vision model. I will provide an image of an alginate film that has a red reaction area.
+Your task is to detect the exact boundaries of the red reaction area and return a polygon that encloses it.
+The target output coordinate system width is ${displayWidth} and height is ${displayHeight}.
+Return the result strictly as a raw JSON array of objects, with each object containing "x" and "y" properties corresponding to the vertices of the polygon.
+Do not include any markdown formatting, backticks, or additional text.
+Example format: [{"x": 10.5, "y": 20.1}, {"x": 30.0, "y": 40.5}]
+Ensure the polygon has at least 8 vertices and tightly bounds the red area.
+  `.trim();
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              { text: prompt },
+              {
+                inline_data: {
+                  mime_type: "image/jpeg",
+                  data: manipulated.base64,
+                },
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.1,
+          responseMimeType: "application/json",
+        },
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Gemini API Error: ${response.status} ${errText}`);
+  }
+
+  const jsonResult = await response.json();
+  const textOutput = jsonResult.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!textOutput) {
+    throw new Error("No text returned from Gemini");
+  }
+
+  let points: { x: number; y: number }[];
+  try {
+    points = JSON.parse(textOutput);
+  } catch (e) {
+    const cleaned = textOutput.replace(/\`\`\`(json)?/g, "").trim();
+    points = JSON.parse(cleaned);
+  }
+
+  if (!Array.isArray(points)) {
+    throw new Error("Gemini did not return an array");
+  }
+
+  return points.map((p, i) => ({
+    id: `gemini_${i}_${Math.random().toString(36).substr(2, 5)}`,
+    x: p.x,
+    y: p.y,
+  }));
+}
+
+async function detectRedRegionLocal(
   imageUri: string,
   displayWidth: number,
   displayHeight: number,
@@ -37,36 +145,23 @@ export async function detectRedRegion(
 
     const { data, width, height } = pixels;
 
-    // ── Step 1: RGB → HSV 변환 및 빨간색 마스크 생성 ──
-    // ImageJ와 유사하게 HSV 색상 공간에서 빨간색을 검출
-    // 빨간색의 Hue는 0° 근처 또는 360° 근처 (래핑)
-    const hsvMask = createHSVRedMask(data, width, height);
+    // ── Step 1: Adaptive Redness Oust Thresholding ──
+    const redMask = createAdaptiveRedMask(data, width, height);
 
-    // ── Step 2: Sobel 그래디언트로 경계 강화 ──
-    // 색상 경계가 뚜렷한 지점을 검출하여 마스크 경계를 정밀하게 잘라냄
-    const edgeRefinedMask = refineWithGradient(data, width, height, hsvMask);
-
-    // ── Step 3: Morphological 연산 (침식 → 팽창) ──
-    // 작은 노이즈 제거 및 매끄러운 경계 생성
-    const erodedMask = morphErode(edgeRefinedMask, width, height);
+    // ── Step 2: Morphological 연산 (침식 -> 팽창) ──
+    // 얇은 잡음을 제거하고 메인 영역만 남김
+    const erodedMask = morphErode(redMask, width, height);
     const cleanMask = morphDilate(erodedMask, width, height);
 
-    // ── Step 4: 가장 큰 연결 컴포넌트 선택 ──
+    // ── Step 3: 가장 큰 연결 컴포넌트(주요 필름 영역) 선택 ──
     const largest = findLargestCluster(cleanMask, width, height);
     if (largest.length < 5) {
       console.log("Could not find a large enough red region.");
       return [];
     }
 
-    // ── Step 5: 경계 점들로 다각형 생성 ──
-    // 클러스터의 외곽 경계(contour)만 추출하여 다각형 꼭짓점 생성
-    const polygon = createBoundaryPolygon(
-      largest,
-      cleanMask,
-      width,
-      height,
-      16,
-    );
+    // ── Step 4: 완전한 다각형을 위한 Convex Hull (Monotone Chain) ──
+    const polygon = createConvexPolygon(largest, 16);
 
     const scaleX = displayWidth / width;
     const scaleY = displayHeight / height;
@@ -82,187 +177,86 @@ export async function detectRedRegion(
   }
 }
 
-// ─── RGB → HSV 변환 ──────────────────────────────────
+// ─── Adaptive Otsu 기반 빨간색 마스크 생성 ──────────────────────
 
-function rgbToHsv(
-  r: number,
-  g: number,
-  b: number,
-): { h: number; s: number; v: number } {
-  r /= 255;
-  g /= 255;
-  b /= 255;
-
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  const delta = max - min;
-
-  let h = 0;
-  if (delta !== 0) {
-    if (max === r) {
-      h = ((g - b) / delta) % 6;
-    } else if (max === g) {
-      h = (b - r) / delta + 2;
-    } else {
-      h = (r - g) / delta + 4;
-    }
-    h *= 60;
-    if (h < 0) h += 360;
+function calculateOtsuThreshold(rednessArray: number[]): number {
+  const histogram = new Array(256).fill(0);
+  for (const r of rednessArray) {
+    histogram[Math.min(255, Math.max(0, Math.floor(r)))]++;
   }
+  const total = rednessArray.length;
+  let sum = 0;
+  for (let i = 0; i < 256; i++) sum += i * histogram[i];
 
-  const s = max === 0 ? 0 : delta / max;
-  const v = max;
+  let sumB = 0;
+  let wB = 0;
+  let wF = 0;
+  let varMax = 0;
+  let threshold = 0;
 
-  return { h, s, v };
+  for (let t = 0; t < 256; t++) {
+    wB += histogram[t];
+    if (wB === 0) continue;
+    wF = total - wB;
+    if (wF === 0) break;
+
+    sumB += t * histogram[t];
+    const mB = sumB / wB;
+    const mF = (sum - sumB) / wF;
+
+    const varBetween = wB * wF * (mB - mF) ** 2;
+    if (varBetween > varMax) {
+      varMax = varBetween;
+      threshold = t;
+    }
+  }
+  return threshold;
 }
 
-// ─── HSV 기반 빨간색 마스크 생성 ──────────────────────
-
-function createHSVRedMask(
+function createAdaptiveRedMask(
   data: Uint8Array,
   width: number,
   height: number,
 ): boolean[][] {
   const mask: boolean[][] = [];
-
-  // 1단계: 모든 픽셀의 HSV 값으로 빨간 후보 마스킹
-  // 빨간색: H < 15° 또는 H > 340°, S > 0.2, V > 0.15
-  const candidates: { h: number; s: number; v: number; idx: number }[] = [];
+  const rednessArr: number[] = [];
+  const rednessMap: number[][] = [];
 
   for (let y = 0; y < height; y++) {
+    rednessMap[y] = [];
     mask[y] = [];
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
       const r = data[i],
         g = data[i + 1],
         b = data[i + 2];
-      const hsv = rgbToHsv(r, g, b);
 
-      // ImageJ 스타일: 빨간 범위에 있고, 충분한 채도와 밝기
-      const isRedHue = hsv.h < 20 || hsv.h > 335;
-      const hasSaturation = hsv.s > 0.2;
-      const hasBrightness = hsv.v > 0.15;
+      const redness = Math.max(0, r - Math.max(g, b));
+      rednessMap[y][x] = redness;
 
-      // 추가 조건: R 채널이 G, B보다 확실히 높을 것
-      const rDominant = r > g * 1.2 && r > b * 1.2;
-
-      mask[y][x] = isRedHue && hasSaturation && hasBrightness && rDominant;
-
-      if (mask[y][x]) {
-        candidates.push({ ...hsv, idx: y * width + x });
+      // 완전 노이즈 혹은 배경을 제외한 유의미한 빨간색 분포만 모음
+      if (redness > 10) {
+        rednessArr.push(redness);
       }
     }
   }
 
-  // 2단계: 적이성(adaptiveness) — 빨간 후보가 너무 적으면 임계값 완화
-  if (candidates.length < width * height * 0.005) {
-    // 전체의 0.5% 미만이면 기준 완화
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        if (mask[y][x]) continue;
-        const i = (y * width + x) * 4;
-        const r = data[i],
-          g = data[i + 1],
-          b = data[i + 2];
-        const hsv = rgbToHsv(r, g, b);
+  // 붉은 영역이 거의 없다면 모두 실패처리
+  if (rednessArr.length < width * height * 0.005) {
+    return mask;
+  }
 
-        const isRedHue = hsv.h < 30 || hsv.h > 320;
-        const hasSaturation = hsv.s > 0.15;
-        const hasBrightness = hsv.v > 0.1;
-        const rDominant = r > g && r > b;
+  let threshold = calculateOtsuThreshold(rednessArr);
+  // 주변 노이즈를 허용하지 않도록 약간 빡빡하게 조정 (Otsu의 약점 보완)
+  threshold = Math.max(threshold * 0.8, 20);
 
-        mask[y][x] = isRedHue && hasSaturation && hasBrightness && rDominant;
-      }
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      mask[y][x] = rednessMap[y][x] >= threshold;
     }
   }
 
   return mask;
-}
-
-// ─── Sobel 그래디언트 기반 경계 정밀화 ──────────────────
-
-function refineWithGradient(
-  data: Uint8Array,
-  width: number,
-  height: number,
-  mask: boolean[][],
-): boolean[][] {
-  // Sobel 커널로 색상 그래디언트 크기 계산
-  // 그래디언트가 강한 곳 = 색상 경계 → 마스크 경계를 여기까지만 허용
-  const gradient: number[][] = [];
-
-  for (let y = 0; y < height; y++) {
-    gradient[y] = [];
-    for (let x = 0; x < width; x++) {
-      if (y === 0 || y === height - 1 || x === 0 || x === width - 1) {
-        gradient[y][x] = 0;
-        continue;
-      }
-
-      // 각 픽셀 주변의 R 채도 차이를 사용 (색상 경계 감지)
-      // Sobel X
-      const gxR =
-        -getR(data, width, x - 1, y - 1) +
-        getR(data, width, x + 1, y - 1) +
-        -2 * getR(data, width, x - 1, y) +
-        2 * getR(data, width, x + 1, y) +
-        -getR(data, width, x - 1, y + 1) +
-        getR(data, width, x + 1, y + 1);
-
-      // Sobel Y
-      const gyR =
-        -getR(data, width, x - 1, y - 1) +
-        -2 * getR(data, width, x, y - 1) +
-        -getR(data, width, x + 1, y - 1) +
-        getR(data, width, x - 1, y + 1) +
-        2 * getR(data, width, x, y + 1) +
-        getR(data, width, x + 1, y + 1);
-
-      gradient[y][x] = Math.sqrt(gxR * gxR + gyR * gyR);
-    }
-  }
-
-  // 그래디언트 임계값: 경계 내부의 픽셀만 유지
-  // 마스크 경계 부근에서 그래디언트가 높은 곳을 경계로 사용
-  const refinedMask: boolean[][] = [];
-  const GRADIENT_THRESHOLD = 30; // 뚜렷한 색상 변화의 기준
-
-  for (let y = 0; y < height; y++) {
-    refinedMask[y] = [];
-    for (let x = 0; x < width; x++) {
-      if (!mask[y][x]) {
-        refinedMask[y][x] = false;
-        continue;
-      }
-
-      // 해당 점이 마스크 내부인데, 근처(3x3)에 마스크 외부가 있으면 경계 근처
-      let nearEdge = false;
-      for (let dy = -1; dy <= 1 && !nearEdge; dy++) {
-        for (let dx = -1; dx <= 1 && !nearEdge; dx++) {
-          const ny = y + dy,
-            nx = x + dx;
-          if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
-            if (!mask[ny][nx]) nearEdge = true;
-          }
-        }
-      }
-
-      if (nearEdge) {
-        // 경계 근처 픽셀: 그래디언트가 충분하면 유지 (뚜렷한 경계)
-        // 그래디언트가 약하면 제거 (점진적 변화 = 경계 아님)
-        refinedMask[y][x] = gradient[y][x] >= GRADIENT_THRESHOLD;
-      } else {
-        // 내부 픽셀: 유지
-        refinedMask[y][x] = true;
-      }
-    }
-  }
-
-  return refinedMask;
-}
-
-function getR(data: Uint8Array, width: number, x: number, y: number): number {
-  return data[(y * width + x) * 4]; // R channel
 }
 
 // ─── Morphological 연산 ──────────────────────────────
@@ -280,7 +274,6 @@ function morphErode(
         result[y][x] = false;
         continue;
       }
-      // 3x3 커널: 모든 이웃이 true여야 유지
       let allTrue = true;
       for (let dy = -1; dy <= 1 && allTrue; dy++) {
         for (let dx = -1; dx <= 1 && allTrue; dx++) {
@@ -316,7 +309,6 @@ function morphDilate(
         result[y][x] = true;
         continue;
       }
-      // 3x3 커널: 하나라도 이웃이 true면 true
       let anyTrue = false;
       for (let dy = -1; dy <= 1 && !anyTrue; dy++) {
         for (let dx = -1; dx <= 1 && !anyTrue; dx++) {
@@ -359,7 +351,6 @@ function findLargestCluster(
         const curr = queue.shift()!;
         cluster.push(curr);
 
-        // 8방향 인접 탐색 (대각선 포함)
         for (let dy = -1; dy <= 1; dy++) {
           for (let dx = -1; dx <= 1; dx++) {
             if (dx === 0 && dy === 0) continue;
@@ -389,105 +380,60 @@ function findLargestCluster(
   return largestCluster;
 }
 
-// ─── 경계 기반 다각형 생성 ──────────────────────────────
+// ─── 볼록 껍질 기반 다각형 생성 (Monotone Chain) ───────────────
 
-function createBoundaryPolygon(
+function createConvexPolygon(
   clusterPixels: { x: number; y: number }[],
-  mask: boolean[][],
-  width: number,
-  height: number,
   numVertices: number,
 ): { x: number; y: number }[] {
-  // 클러스터 내의 경계 픽셀만 추출
-  // (경계 = 4방향 중 하나라도 마스크 외부인 픽셀)
-  const boundaryPixels: { x: number; y: number }[] = [];
-  const pixelSet = new Set(clusterPixels.map((p) => `${p.x},${p.y}`));
+  if (clusterPixels.length < 3) return clusterPixels;
 
-  for (const p of clusterPixels) {
-    const neighbors = [
-      { x: p.x - 1, y: p.y },
-      { x: p.x + 1, y: p.y },
-      { x: p.x, y: p.y - 1 },
-      { x: p.x, y: p.y + 1 },
-    ];
-
-    for (const n of neighbors) {
-      if (
-        n.x < 0 ||
-        n.x >= width ||
-        n.y < 0 ||
-        n.y >= height ||
-        !mask[n.y]?.[n.x]
-      ) {
-        boundaryPixels.push(p);
-        break;
-      }
-    }
-  }
-
-  if (boundaryPixels.length < 3) {
-    return clusterPixels.slice(0, numVertices);
-  }
-
-  // 중심 계산
-  let cx = 0,
-    cy = 0;
-  for (const p of clusterPixels) {
-    cx += p.x;
-    cy += p.y;
-  }
-  cx /= clusterPixels.length;
-  cy /= clusterPixels.length;
-
-  // 각도별 섹터에서 가장 먼 경계 픽셀을 선택하여 다각형 꼭짓점 생성
-  const angleStep = (2 * Math.PI) / numVertices;
-  const vertices: { x: number; y: number }[] = [];
-
-  for (let i = 0; i < numVertices; i++) {
-    const angle = angleStep * i;
-
-    let maxDist = 0;
-    let bestX = cx + Math.cos(angle) * 3;
-    let bestY = cy + Math.sin(angle) * 3;
-
-    for (const p of boundaryPixels) {
-      const dx = p.x - cx;
-      const dy = p.y - cy;
-      const pAngle = Math.atan2(dy, dx);
-
-      let angleDiff = Math.abs(pAngle - angle);
-      if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
-
-      if (angleDiff <= angleStep / 2) {
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist > maxDist) {
-          maxDist = dist;
-          bestX = p.x;
-          bestY = p.y;
-        }
-      }
-    }
-
-    vertices.push({ x: bestX, y: bestY });
-  }
-
-  // 극단적 이상치 보정 (평균 반지름의 1.8배 초과 시 클램핑)
-  const distances = vertices.map((v) =>
-    Math.sqrt((v.x - cx) ** 2 + (v.y - cy) ** 2),
+  const points = [...clusterPixels].sort((a, b) =>
+    a.x === b.x ? a.y - b.y : a.x - b.x,
   );
-  const avgDist = distances.reduce((s, d) => s + d, 0) / distances.length;
 
-  return vertices.map((v, i) => {
-    const d = distances[i];
-    if (d > avgDist * 1.8) {
-      const angle = Math.atan2(v.y - cy, v.x - cx);
-      return {
-        x: cx + Math.cos(angle) * avgDist * 1.3,
-        y: cy + Math.sin(angle) * avgDist * 1.3,
-      };
+  const cross = (
+    o: { x: number; y: number },
+    a: { x: number; y: number },
+    b: { x: number; y: number },
+  ) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+
+  const lower: { x: number; y: number }[] = [];
+  for (let i = 0; i < points.length; i++) {
+    while (
+      lower.length >= 2 &&
+      cross(lower[lower.length - 2], lower[lower.length - 1], points[i]) <= 0
+    ) {
+      lower.pop();
     }
-    return v;
-  });
+    lower.push(points[i]);
+  }
+
+  const upper: { x: number; y: number }[] = [];
+  for (let i = points.length - 1; i >= 0; i--) {
+    while (
+      upper.length >= 2 &&
+      cross(upper[upper.length - 2], upper[upper.length - 1], points[i]) <= 0
+    ) {
+      upper.pop();
+    }
+    upper.push(points[i]);
+  }
+
+  upper.pop();
+  lower.pop();
+  const hull = lower.concat(upper);
+
+  if (hull.length <= numVertices) return hull;
+
+  // 원하는 꼭짓점 개수에 가깝게 단순화 (Decimation)
+  const step = hull.length / numVertices;
+  const decimated: { x: number; y: number }[] = [];
+  for (let i = 0; i < numVertices; i++) {
+    decimated.push(hull[Math.floor(i * step)]);
+  }
+
+  return decimated;
 }
 
 // ─── PNG 디코딩 ───────────────────────────────────────
