@@ -19,6 +19,7 @@ import {
   Image as GalleryIcon,
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import { cn } from "../../lib/utils";
 import { setAnalysisImage } from "../../lib/temp-storage";
 import { safeGoBack, webBlur } from "../../lib/navigation";
@@ -46,7 +47,7 @@ export default function CameraScreen() {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false, // We handle cropping in analysis
+      allowsEditing: true,
       quality: 1,
     });
 
@@ -119,7 +120,6 @@ export default function CameraScreen() {
           router.push({
             pathname: "/analysis",
             params: {
-              // imageUri is now passed via temp storage
               method: method as string,
               filmDiameter: filmDiameter as string,
               refDimension: refDimension as string,

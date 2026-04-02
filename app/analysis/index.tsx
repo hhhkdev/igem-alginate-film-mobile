@@ -9,9 +9,10 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ResizableCircle } from "../../components/ResizableCircle";
 import { ResizableLine } from "../../components/ResizableLine";
 import { PolygonDraggable } from "../../components/PolygonDraggable";
@@ -63,6 +64,21 @@ export default function AnalysisScreen() {
   const [isPolygonClosed, setIsPolygonClosed] = useState(false);
 
   const [isDetecting, setIsDetecting] = useState(false);
+  const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    if (currentImageUri) {
+      Image.getSize(
+        currentImageUri as string,
+        (width, height) => {
+          setImageSize({ width, height });
+        },
+        (error) => {
+          console.error("Failed to get image size:", error);
+        }
+      );
+    }
+  }, [currentImageUri]);
 
   // 계산 로직
   const getScale = () => {
@@ -89,7 +105,6 @@ export default function AnalysisScreen() {
   };
 
   const calculateResult = () => {
-    // Only calculate when polygon is closed
     if (!isPolygonClosed || polygonPoints.length < 3) {
       return {
         areaMm: 0,
@@ -137,22 +152,50 @@ export default function AnalysisScreen() {
   };
 
   const handleAutoDetect = async () => {
-    if (!currentImageUri || isDetecting) return;
+    if (!currentImageUri || isDetecting || !imageSize.width || !layout.width) return;
     setIsDetecting(true);
     try {
-      const detectedPoints = await detectRedRegion(
-        currentImageUri as string,
-        layout.width || SCREEN_WIDTH,
-        layout.height || SCREEN_WIDTH,
-      );
-      if (detectedPoints.length >= 3) {
-        setPolygonPoints(detectedPoints);
+      const normalizedPoints = await detectRedRegion(currentImageUri as string);
+
+      if (normalizedPoints && normalizedPoints.length >= 3) {
+        // Map normalized coordinates to screen based on "contain" logic
+        const scale = Math.min(
+          layout.width / imageSize.width,
+          layout.height / imageSize.height
+        );
+        const displayedW = imageSize.width * scale;
+        const displayedH = imageSize.height * scale;
+        const offsetX = (displayedW - layout.width) / 2;
+        const offsetY = (displayedH - layout.height) / 2;
+
+        const screenPoints = normalizedPoints.map(p => ({
+          id: p.id,
+          x: p.x * displayedW - offsetX,
+          y: p.y * displayedH - offsetY,
+        }));
+
+        setPolygonPoints(screenPoints);
         setIsPolygonClosed(true);
-        // Auto-switch to polygon mode after detection
         setEditMode("polygon");
+
+        Alert.alert(
+          "Detection Complete",
+          "Region detected by the Image Processing Algorithm. You can drag and adjust nodes if necessary."
+        );
+      } else {
+        setEditMode("polygon");
+        Alert.alert(
+          "Detection Failed",
+          "Could not find a distinct red region. Please manually place points to specify the area."
+        );
       }
     } catch (error) {
       console.error("Auto detection failed:", error);
+      setEditMode("polygon");
+      Alert.alert(
+        "Detection Error",
+        "An error occurred during detection. Please specify manually."
+      );
     } finally {
       setIsDetecting(false);
     }
@@ -179,7 +222,7 @@ export default function AnalysisScreen() {
             <Image
               source={{ uri: currentImageUri as string }}
               style={[StyleSheet.absoluteFill]}
-              resizeMode="cover"
+              resizeMode="contain"
             />
 
             {/* Loading Overlay */}
@@ -337,9 +380,9 @@ export default function AnalysisScreen() {
                 <View style={s.instructionDot} />
                 <Text style={s.instructionText}>
                   {isRefMode
-                    ? "Adjust the blue reference tool on the image.\nSwitch to 'Set Region' mode when done."
+                    ? "Adjust the blue reference tool on the image.\nPress 'Next' when done."
                     : isPolygonClosed
-                      ? "Region set.\nDrag or tap points to delete."
+                      ? "Region detected or set.\nDrag nodes or edges to adjust the area."
                       : "Tap the red reaction area to mark points.\nTap the first point again to close."}
                 </Text>
               </View>
@@ -366,7 +409,7 @@ export default function AnalysisScreen() {
                 </View>
               </View>
 
-              {/* Main Result Card — only shown after polygon is closed */}
+              {/* Main Result Card — only shown after target is set */}
               {isPolygonClosed && polygonPoints.length >= 3 ? (
                 <View
                   style={[
@@ -411,44 +454,64 @@ export default function AnalysisScreen() {
                   </Text>
                 </View>
               )}
-
-              {/* Action Button */}
-              <TouchableOpacity
-                style={[
-                  s.saveButton,
-                  !(isPolygonClosed && polygonPoints.length >= 3) &&
-                    s.saveButtonDisabled,
-                ]}
-                disabled={!(isPolygonClosed && polygonPoints.length >= 3)}
-                onPress={async () => {
-                  await saveResult({
-                    date: new Date().toISOString(),
-                    concentration: concentration,
-                    area: areaMm,
-                    imageUri: currentImageUri as string,
-                  });
-
-                  router.push({
-                    pathname: "/result",
-                    params: {
-                      area: areaMm.toFixed(2),
-                      concentration: concentration.toFixed(1),
-                      imageUri: currentImageUri as string,
-                    },
-                  });
-                }}
-              >
-                <Text
-                  style={[
-                    s.saveButtonText,
-                    !(isPolygonClosed && polygonPoints.length >= 3) &&
-                      s.saveButtonTextDisabled,
-                  ]}
-                >
-                  Save Results
-                </Text>
-              </TouchableOpacity>
             </ScrollView>
+
+            {/* Fixed Action Button */}
+            <View style={s.fixedBottomAction}>
+              {isRefMode ? (
+                <TouchableOpacity
+                  style={[
+                    s.saveButton,
+                    isDetecting && s.saveButtonDisabled,
+                  ]}
+                  disabled={isDetecting}
+                  onPress={handleAutoDetect}
+                >
+                  <Text
+                    style={[
+                      s.saveButtonText,
+                      isDetecting && s.saveButtonTextDisabled,
+                    ]}
+                  >
+                    {isDetecting ? "Detecting..." : "Next"}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[
+                    s.saveButton,
+                    !(isPolygonClosed && polygonPoints.length >= 3) && s.saveButtonDisabled,
+                  ]}
+                  disabled={!(isPolygonClosed && polygonPoints.length >= 3)}
+                  onPress={async () => {
+                    await saveResult({
+                      date: new Date().toISOString(),
+                      concentration: concentration,
+                      area: areaMm,
+                      imageUri: currentImageUri as string,
+                    });
+
+                    router.push({
+                      pathname: "/result",
+                      params: {
+                        area: areaMm.toFixed(2),
+                        concentration: concentration.toFixed(1),
+                        imageUri: currentImageUri as string,
+                      },
+                    });
+                  }}
+                >
+                  <Text
+                    style={[
+                      s.saveButtonText,
+                      !(isPolygonClosed && polygonPoints.length >= 3) && s.saveButtonTextDisabled,
+                    ]}
+                  >
+                    Save Results
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </View>
       </SafeAreaView>
@@ -525,7 +588,15 @@ const s = StyleSheet.create({
   },
   resultsPanelContent: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 20,
+  },
+  fixedBottomAction: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingTop: 16,
+    backgroundColor: tokens.color.bgPrimary,
+    borderTopWidth: 1,
+    borderTopColor: tokens.color.borderDefault,
   },
   // Mode Toggle
   modeToggleContainer: {

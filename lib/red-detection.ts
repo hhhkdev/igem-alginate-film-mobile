@@ -15,119 +15,11 @@ import pako from "pako";
  */
 export async function detectRedRegion(
   imageUri: string,
-  displayWidth: number,
-  displayHeight: number,
-): Promise<{ id: string; x: number; y: number }[]> {
-  const apiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
-  if (apiKey) {
-    try {
-      console.log("Attempting Gemini API for red detection...");
-      const result = await detectRedRegionGemini(
-        imageUri,
-        displayWidth,
-        displayHeight,
-        apiKey,
-      );
-      if (result && result.length >= 3) {
-        return result;
-      }
-    } catch (e) {
-      console.error("Gemini API failed, falling back to local detection", e);
-    }
-  }
-  return detectRedRegionLocal(imageUri, displayWidth, displayHeight);
-}
-
-async function detectRedRegionGemini(
-  imageUri: string,
-  displayWidth: number,
-  displayHeight: number,
-  apiKey: string,
-): Promise<{ id: string; x: number; y: number }[]> {
-  const manipulated = await ImageManipulator.manipulateAsync(
-    imageUri,
-    [{ resize: { width: 512 } }],
-    { format: ImageManipulator.SaveFormat.JPEG, compress: 0.8, base64: true },
-  );
-
-  if (!manipulated.base64) {
-    throw new Error("Could not retrieve base64 data for Gemini.");
-  }
-
-  const prompt = `
-You are an expert computer vision model. I will provide an image of an alginate film that has a red reaction area.
-Your task is to detect the exact boundaries of the red reaction area and return a polygon that encloses it.
-The target output coordinate system width is ${displayWidth} and height is ${displayHeight}.
-Return the result strictly as a raw JSON array of objects, with each object containing "x" and "y" properties corresponding to the vertices of the polygon.
-Do not include any markdown formatting, backticks, or additional text.
-Example format: [{"x": 10.5, "y": 20.1}, {"x": 30.0, "y": 40.5}]
-Ensure the polygon has at least 8 vertices and tightly bounds the red area.
-  `.trim();
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: prompt },
-              {
-                inline_data: {
-                  mime_type: "image/jpeg",
-                  data: manipulated.base64,
-                },
-              },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.1,
-          responseMimeType: "application/json",
-        },
-      }),
-    },
-  );
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Gemini API Error: ${response.status} ${errText}`);
-  }
-
-  const jsonResult = await response.json();
-  const textOutput = jsonResult.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!textOutput) {
-    throw new Error("No text returned from Gemini");
-  }
-
-  let points: { x: number; y: number }[];
-  try {
-    points = JSON.parse(textOutput);
-  } catch (e) {
-    const cleaned = textOutput.replace(/\`\`\`(json)?/g, "").trim();
-    points = JSON.parse(cleaned);
-  }
-
-  if (!Array.isArray(points)) {
-    throw new Error("Gemini did not return an array");
-  }
-
-  return points.map((p, i) => ({
-    id: `gemini_${i}_${Math.random().toString(36).substr(2, 5)}`,
-    x: p.x,
-    y: p.y,
-  }));
-}
-
-async function detectRedRegionLocal(
-  imageUri: string,
-  displayWidth: number,
-  displayHeight: number,
 ): Promise<{ id: string; x: number; y: number }[]> {
   try {
-    const SAMPLE_SIZE = 100;
+    // ── 해상도 대폭 상향: 정확도 최대로 끌어올리기 (연산량 감수) ──
+    // 더 촘촘한 픽셀 지점을 분석하여, 급격한 Edge의 모서리 곡률까지 빈틈없이 잡아냅니다.
+    const SAMPLE_SIZE = 400; 
 
     const manipulated = await ImageManipulator.manipulateAsync(
       imageUri,
@@ -160,11 +52,13 @@ async function detectRedRegionLocal(
       return [];
     }
 
-    // ── Step 4: 완전한 다각형을 위한 Convex Hull (Monotone Chain) ──
-    const polygon = createConvexPolygon(largest, 16);
+    // ── Step 4: 원형 가정이 아닌, 곡률이 변할 수 있는 실제 볼록 다각형성(Convex Hull) 생성 ──
+    const numVertices = 32;
+    // 급격하게 변하는 실제 마스킹 경계를 그대로 살리도록 Convex Polygon을 생성합니다.
+    const polygon = createConvexPolygon(largest, numVertices);
 
-    const scaleX = displayWidth / width;
-    const scaleY = displayHeight / height;
+    const scaleX = 1 / width;
+    const scaleY = 1 / height;
 
     return polygon.map((p, i) => ({
       id: `auto_${i}_${Math.random().toString(36).substr(2, 5)}`,
@@ -247,8 +141,9 @@ function createAdaptiveRedMask(
   }
 
   let threshold = calculateOtsuThreshold(rednessArr);
-  // 주변 노이즈를 허용하지 않도록 약간 빡빡하게 조정 (Otsu의 약점 보완)
-  threshold = Math.max(threshold * 0.8, 20);
+  // 알고리즘 정확도 강도를 최대로 끌어올립니다. 
+  // 진짜 색상이 급격히 단절되는 엣지를 찾기 위해 원본 Otsu의 임계값을 거의 그대로(0.85배) 신뢰합니다.
+  threshold = Math.max(threshold * 0.85, 20);
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
