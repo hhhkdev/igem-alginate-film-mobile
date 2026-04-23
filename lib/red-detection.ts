@@ -24,6 +24,7 @@ import pako from "pako";
  */
 export async function detectRedRegion(
   imageUri: string,
+  maskCircle?: { nx: number; ny: number; nrX: number; nrY: number }
 ): Promise<{ id: string; x: number; y: number }[]> {
   try {
     // 정확도 최우선: 800×800 전체 분석 (연산량 증가 감수)
@@ -46,7 +47,7 @@ export async function detectRedRegion(
     const { data, width, height } = pixels;
 
     // ── Step 1: 전 픽셀 크로마티시티 redness score 계산 ──
-    const { scoreMap, allScores } = computeAllScores(data, width, height);
+    const { scoreMap, allScores } = computeAllScores(data, width, height, maskCircle);
 
     if (allScores.length < width * height * 0.001) {
       console.log(`Too few red candidates: ${allScores.length} / ${width * height}`);
@@ -55,10 +56,10 @@ export async function detectRedRegion(
 
     // ── Step 2: Otsu로 씨앗 임계값·확장 임계값 결정 ──
     const otsuT = calculateOtsuThreshold(allScores);
-    // T_seed: Otsu의 70% → 확실한 빨간색만 씨앗으로
-    const seedThreshold = Math.max(otsuT * 0.70, 8);
-    // T_grow: T_seed의 35% → 연한 경계까지 BFS 확장
-    const growThreshold = Math.max(seedThreshold * 0.35, 3);
+    // T_seed: Otsu의 70%. 아주 연한 핑크색(score 10~20)도 씨앗이 될 수 있게 최솟값을 낮춥니다.
+    const seedThreshold = Math.max(otsuT * 0.70, 10);
+    // T_grow: T_seed의 40% → 더 연한 경계까지 확장
+    const growThreshold = Math.max(seedThreshold * 0.40, 3);
 
     console.log(`[RedDetect] Otsu=${otsuT.toFixed(1)}, Seed≥${seedThreshold.toFixed(1)}, Grow≥${growThreshold.toFixed(1)}`);
 
@@ -155,22 +156,18 @@ function computeRednessScore(r: number, g: number, b: number): number {
   const { L, a, b: bLab } = rgbToLab(r, g, b);
 
   // 너무 어둡거나(그림자) 너무 밝으면(Glare) 제외
-  if (L < 8 || L > 97) return 0;
+  if (L < 15 || L > 95) return 0;
 
-  // a* ≤ 2 이면 빨간기 없음 (중립 또는 초록)
+  // 아주 연한 핑크색도 감지할 수 있도록 a* 문턱값을 다시 낮춥니다.
+  // 마스킹 덕분에 테두리 오탐이 없으므로 민감하게 반응해도 안전합니다.
   if (a <= 2) return 0;
 
   // 오렌지/노랑 패널티: b*가 a*보다 현저히 크면 오렌지 계열
-  // → effectiveA = a - max(0, b - 5) * 0.5
-  // 예) 순수빨강 a=40, b=12 → effective=37  (거의 그대로)
-  //     오렌지   a=30, b=45 → effective=10  (대폭 감소)
-  //     연핑크   a=10, b= 5 → effective=10  (영향 없음)
   const effectiveA = a - Math.max(0, bLab - 5) * 0.5;
   if (effectiveA <= 2) return 0;
 
-  // 0~255 정규화: effectiveA=[2, 60] → score=[0, 255]
-  // a*=10(연핑크)→ score≈34, a*=25(중간빨강)→ score≈99, a*=50(선명빨강)→ score≈255
-  return Math.round(Math.min(255, Math.max(0, (effectiveA - 2) / 58 * 255)));
+  // 0~255 정규화: 연한 핑크색이 더 높은 점수를 받도록 범위를 좁힙니다 (2~42 → 0~255)
+  return Math.round(Math.min(255, Math.max(0, (effectiveA - 2) / 40 * 255)));
 }
 
 /**
@@ -181,13 +178,28 @@ function computeAllScores(
   data: Uint8Array,
   width: number,
   height: number,
+  maskCircle?: { nx: number; ny: number; nrX: number; nrY: number }
 ): { scoreMap: number[][]; allScores: number[] } {
   const scoreMap: number[][] = [];
   const allScores: number[] = [];
 
+  const cx = maskCircle ? maskCircle.nx * width : 0;
+  const cy = maskCircle ? maskCircle.ny * height : 0;
+  // 페트리 접시의 테두리 부분(빛 반사, 굴절, 그림자)을 완전히 제외하기 위해 반지름을 12% 축소합니다.
+  const rx = maskCircle ? maskCircle.nrX * width * 0.88 : 0;
+  const ry = maskCircle ? maskCircle.nrY * height * 0.88 : 0;
+
   for (let y = 0; y < height; y++) {
-    scoreMap[y] = new Array(width);
+    scoreMap[y] = new Array(width).fill(0);
     for (let x = 0; x < width; x++) {
+      if (maskCircle) {
+        const dx = (x - cx) / rx;
+        const dy = (y - cy) / ry;
+        if (dx * dx + dy * dy > 1) {
+          continue; // 페트리 접시 영역 밖은 빨간색으로 계산하지 않음
+        }
+      }
+
       const i = (y * width + x) * 4;
       const score = computeRednessScore(data[i], data[i + 1], data[i + 2]);
       scoreMap[y][x] = score;

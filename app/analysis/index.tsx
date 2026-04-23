@@ -155,18 +155,29 @@ export default function AnalysisScreen() {
     if (!currentImageUri || isDetecting || !imageSize.width || !layout.width) return;
     setIsDetecting(true);
     try {
-      const normalizedPoints = await detectRedRegion(currentImageUri as string);
+      const scale = Math.min(
+        layout.width / imageSize.width,
+        layout.height / imageSize.height
+      );
+      const displayedW = imageSize.width * scale;
+      const displayedH = imageSize.height * scale;
+      const offsetX = (displayedW - layout.width) / 2;
+      const offsetY = (displayedH - layout.height) / 2;
+
+      let maskCircle: { nx: number; ny: number; nrX: number; nrY: number } | undefined;
+      if (referenceMethod === "petri") {
+        maskCircle = {
+          nx: (refCircle.x + offsetX) / displayedW,
+          ny: (refCircle.y + offsetY) / displayedH,
+          nrX: refCircle.radius / displayedW,
+          nrY: refCircle.radius / displayedH,
+        };
+      }
+
+      const normalizedPoints = await detectRedRegion(currentImageUri as string, maskCircle);
 
       if (normalizedPoints && normalizedPoints.length >= 3) {
         // Map normalized coordinates to screen based on "contain" logic
-        const scale = Math.min(
-          layout.width / imageSize.width,
-          layout.height / imageSize.height
-        );
-        const displayedW = imageSize.width * scale;
-        const displayedH = imageSize.height * scale;
-        const offsetX = (displayedW - layout.width) / 2;
-        const offsetY = (displayedH - layout.height) / 2;
 
         const screenPoints = normalizedPoints.map(p => ({
           id: p.id,
