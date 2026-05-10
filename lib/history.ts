@@ -6,6 +6,8 @@ export interface AnalysisResult {
   concentration: number;
   area: number;
   imageUri?: string; // Optional: save a thumbnail or reference to image if possible
+  mode?: "experiment" | "normal";
+  location?: { latitude: number; longitude: number };
 }
 
 const STORAGE_KEY = "@analysis_history";

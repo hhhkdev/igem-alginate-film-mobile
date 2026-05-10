@@ -14,12 +14,14 @@ import { useRouter } from "expo-router";
 import { safeGoBack } from "../lib/navigation";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
+import * as Location from "expo-location";
 import { ArrowLeft, ArrowRight } from "lucide-react-native";
 import { tokens } from "../lib/design-tokens";
 
 export default function InputDetailsScreen() {
   const router = useRouter();
   const [method, setMethod] = useState<"petri" | "ruler">("petri");
+  const [testMode, setTestMode] = useState<"experiment" | "normal">("experiment");
   const [filmDiameter, setFilmDiameter] = useState("25.0");
   const [petriDiameter, setPetriDiameter] = useState("150.0");
   const [rulerLength, setRulerLength] = useState("");
@@ -50,6 +52,7 @@ export default function InputDetailsScreen() {
       pathname: "/camera",
       params: {
         method,
+        testMode,
         filmDiameter,
         refDimension: method === "petri" ? petriDiameter : rulerLength,
       },
@@ -82,10 +85,55 @@ export default function InputDetailsScreen() {
 
               <Text style={styles.title}>Measurement Settings</Text>
               <Text style={styles.subtitle}>
-                Select a reference method and enter dimensions.
+                Select mode, reference method and enter dimensions.
               </Text>
 
+              {/* Test Mode Selection */}
+              <Text style={styles.inputLabel}>Test Mode</Text>
+              <View style={styles.methodContainer}>
+                <TouchableOpacity
+                  onPress={() => setTestMode("experiment")}
+                  style={[
+                    styles.methodButton,
+                    testMode === "experiment" && styles.methodButtonActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.methodText,
+                      testMode === "experiment" && styles.methodTextActive,
+                    ]}
+                  >
+                    실험 모드 (Experiment)
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={async () => {
+                    const { status } = await Location.requestForegroundPermissionsAsync();
+                    if (status !== 'granted') {
+                      Alert.alert('Permission needed', 'Location permission is needed for normal mode.');
+                      return;
+                    }
+                    setTestMode("normal");
+                  }}
+                  style={[
+                    styles.methodButton,
+                    testMode === "normal" && styles.methodButtonActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.methodText,
+                      testMode === "normal" && styles.methodTextActive,
+                    ]}
+                  >
+                    일반 모드 (Normal)
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
               {/* Method Selection */}
+              <Text style={styles.inputLabel}>Reference Object</Text>
               <View style={styles.methodContainer}>
                 <TouchableOpacity
                   onPress={() => setMethod("petri")}

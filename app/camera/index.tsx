@@ -27,7 +27,7 @@ import { safeGoBack, webBlur } from "../../lib/navigation";
 export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [flash, setFlash] = useState(false);
-  const { method, filmDiameter, refDimension } = useLocalSearchParams();
+  const { method, testMode, filmDiameter, refDimension } = useLocalSearchParams();
   const cameraRef = useRef<CameraView>(null);
   const isFocused = useIsFocused();
   const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -60,6 +60,7 @@ export default function CameraScreen() {
         pathname: "/analysis",
         params: {
           method: method as string,
+          testMode: testMode as string,
           filmDiameter: filmDiameter as string,
           refDimension: refDimension as string,
         },
@@ -121,6 +122,7 @@ export default function CameraScreen() {
             pathname: "/analysis",
             params: {
               method: method as string,
+              testMode: testMode as string,
               filmDiameter: filmDiameter as string,
               refDimension: refDimension as string,
             },

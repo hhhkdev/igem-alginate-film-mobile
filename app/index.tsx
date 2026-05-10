@@ -52,12 +52,7 @@ export default function HomeScreen() {
           {/* Map View Button */}
           <Pressable
             style={styles.mapButton}
-            onPress={() => {
-              showToast(
-                "Map View will be available in a future update",
-                "info",
-              );
-            }}
+            onPress={() => router.push("/map")}
           >
             <Text style={styles.mapButtonText}>Data Map</Text>
             <Map size={20} color={tokens.color.accentBlue} strokeWidth={2.5} />

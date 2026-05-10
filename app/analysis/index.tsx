@@ -23,13 +23,14 @@ import { getAnalysisImage } from "../../lib/temp-storage";
 import { tokens } from "../../lib/design-tokens";
 import { detectRedRegion } from "../../lib/red-detection";
 import { analyzeConcentration } from "../../lib/calculations";
+import * as Location from "expo-location";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const IMAGE_AREA_HEIGHT = Math.round(SCREEN_HEIGHT * 0.65);
 
 export default function AnalysisScreen() {
-  const { imageUri, method, filmDiameter, refDimension } =
+  const { imageUri, method, testMode, filmDiameter, refDimension } =
     useLocalSearchParams();
 
   const currentImageUri = (imageUri as string) || getAnalysisImage();
@@ -495,11 +496,29 @@ export default function AnalysisScreen() {
                   ]}
                   disabled={!(isPolygonClosed && polygonPoints.length >= 3)}
                   onPress={async () => {
+                    let locationData = undefined;
+                    if (testMode === "normal" && concentration > 1) {
+                      try {
+                        const { status } = await Location.requestForegroundPermissionsAsync();
+                        if (status === 'granted') {
+                          const loc = await Location.getCurrentPositionAsync({});
+                          locationData = {
+                            latitude: loc.coords.latitude,
+                            longitude: loc.coords.longitude,
+                          };
+                        }
+                      } catch (e) {
+                        console.error("Failed to get location", e);
+                      }
+                    }
+
                     await saveResult({
                       date: new Date().toISOString(),
                       concentration: concentration,
                       area: areaMm,
                       imageUri: currentImageUri as string,
+                      mode: testMode as "experiment" | "normal",
+                      location: locationData,
                     });
 
                     router.push({
