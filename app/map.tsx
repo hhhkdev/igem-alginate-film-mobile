@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import CustomMapView from "../components/CustomMapView";
 import { getHistory, AnalysisResult } from "../lib/history";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft } from "lucide-react-native";
@@ -51,23 +51,10 @@ export default function MapScreen() {
         <Text style={styles.headerTitle}>Detection Map</Text>
         <View style={{ width: 40 }} />
       </View>
-      <MapView
-        style={styles.map}
+      <CustomMapView
+        markers={markers}
         initialRegion={initialRegion}
-      >
-        {markers.map((marker) => (
-          <Marker
-            key={marker.id}
-            coordinate={{
-              latitude: marker.location!.latitude,
-              longitude: marker.location!.longitude,
-            }}
-            title={`Detected: ${marker.concentration.toFixed(1)} ppm`}
-            description={`Area: ${marker.area.toFixed(2)} mm², Date: ${new Date(marker.date).toLocaleDateString()}`}
-            pinColor={tokens.color.accentRed}
-          />
-        ))}
-      </MapView>
+      />
     </SafeAreaView>
   );
 }
