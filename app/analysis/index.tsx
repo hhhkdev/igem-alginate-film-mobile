@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   ScrollView,
   Alert,
+  Modal,
+  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
@@ -34,6 +36,89 @@ export default function AnalysisScreen() {
     useLocalSearchParams();
 
   const currentImageUri = (imageUri as string) || getAnalysisImage();
+
+  // Additional metadata states for heavy metal DataMap logging
+  const [modalVisible, setModalVisible] = useState(false);
+  const [locationName, setLocationName] = useState("");
+  const [sampleName, setSampleName] = useState("Sample A");
+  const [notes, setNotes] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [locationCoords, setLocationCoords] = useState<{ latitude: number, longitude: number } | undefined>(undefined);
+
+  // Fetch current GPS coordinates and resolve human-readable address
+  const fetchLocationAndGeocode = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced
+        });
+        const coords = {
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        };
+        setLocationCoords(coords);
+        
+        // Reverse Geocode to find readable address details
+        const geocode = await Location.reverseGeocodeAsync(coords);
+        if (geocode && geocode.length > 0) {
+          const address = geocode[0];
+          const formattedAddress = [
+            address.city || address.subregion,
+            address.street || address.name || address.district
+          ].filter(Boolean).join(" ");
+          
+          setLocationName(formattedAddress || `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`);
+        } else {
+          setLocationName(`${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`);
+        }
+      } else {
+        setLocationName("GPS Permission Denied");
+      }
+    } catch (e) {
+      console.error("Failed to get location or geocode", e);
+      setLocationName("Location Undetermined");
+    }
+  };
+
+  const handleFinalSave = async () => {
+    setIsSaving(true);
+    try {
+      const finalLocName = locationName === "Fetching location..." ? "Unknown Location" : locationName;
+
+      await saveResult({
+        date: new Date().toISOString(),
+        concentration: concentration,
+        area: areaMm,
+        imageUri: currentImageUri as string,
+        mode: testMode as "experiment" | "normal",
+        location: locationCoords,
+        locationName: finalLocName,
+        sampleName: sampleName || "Sample A",
+        notes: notes || "",
+      });
+
+      setModalVisible(false);
+      setIsSaving(false);
+
+      router.push({
+        pathname: "/result",
+        params: {
+          area: areaMm.toFixed(2),
+          concentration: concentration.toFixed(1),
+          imageUri: currentImageUri as string,
+          locationName: finalLocName,
+          sampleName: sampleName || "Sample A",
+          notes: notes || "",
+          latitude: locationCoords?.latitude?.toString() || "",
+          longitude: locationCoords?.longitude?.toString() || "",
+        },
+      });
+    } catch (error) {
+      setIsSaving(false);
+      Alert.alert("Error", "Failed to save results. Please try again.");
+    }
+  };
 
   const referenceMethod = (method as "petri" | "ruler") || "petri";
   const refValueMm =
@@ -496,39 +581,14 @@ export default function AnalysisScreen() {
                   ]}
                   disabled={!(isPolygonClosed && polygonPoints.length >= 3)}
                   onPress={async () => {
-                    let locationData = undefined;
-                    if (testMode === "normal" && concentration > 1) {
-                      try {
-                        const { status } = await Location.requestForegroundPermissionsAsync();
-                        if (status === 'granted') {
-                          const loc = await Location.getCurrentPositionAsync({});
-                          locationData = {
-                            latitude: loc.coords.latitude,
-                            longitude: loc.coords.longitude,
-                          };
-                        }
-                      } catch (e) {
-                        console.error("Failed to get location", e);
-                      }
+                    setModalVisible(true);
+                    if (testMode === "normal") {
+                      setLocationName("Fetching location...");
+                      await fetchLocationAndGeocode();
+                    } else {
+                      setLocationName("Laboratory (Indoor)");
+                      setLocationCoords(undefined);
                     }
-
-                    await saveResult({
-                      date: new Date().toISOString(),
-                      concentration: concentration,
-                      area: areaMm,
-                      imageUri: currentImageUri as string,
-                      mode: testMode as "experiment" | "normal",
-                      location: locationData,
-                    });
-
-                    router.push({
-                      pathname: "/result",
-                      params: {
-                        area: areaMm.toFixed(2),
-                        concentration: concentration.toFixed(1),
-                        imageUri: currentImageUri as string,
-                      },
-                    });
                   }}
                 >
                   <Text
@@ -544,6 +604,86 @@ export default function AnalysisScreen() {
             </View>
           </View>
         </View>
+
+        {/* Save Details Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={s.modalOverlay}>
+            <View style={s.modalContainer}>
+              <Text style={s.modalTitle}>Save Contaminant Record</Text>
+              <Text style={s.modalSubtitle}>
+                Add contextual metadata for geo-tracking analysis history.
+              </Text>
+
+              <ScrollView style={s.modalScroll} showsVerticalScrollIndicator={false}>
+                {/* Location Name */}
+                <View style={s.modalInputGroup}>
+                  <Text style={s.modalLabel}>Inspection Location</Text>
+                  <TextInput
+                    style={s.modalInput}
+                    value={locationName}
+                    onChangeText={setLocationName}
+                    placeholder="e.g. River, Campus, City"
+                    placeholderTextColor={tokens.color.textPlaceholder}
+                  />
+                </View>
+
+                {/* Sample Name */}
+                <View style={s.modalInputGroup}>
+                  <Text style={s.modalLabel}>Sample Identity</Text>
+                  <TextInput
+                    style={s.modalInput}
+                    value={sampleName}
+                    onChangeText={setSampleName}
+                    placeholder="e.g. Alginate Film 1A"
+                    placeholderTextColor={tokens.color.textPlaceholder}
+                  />
+                </View>
+
+                {/* Notes */}
+                <View style={s.modalInputGroup}>
+                  <Text style={s.modalLabel}>Additional Notes</Text>
+                  <TextInput
+                    style={[s.modalInput, s.modalInputMultiline]}
+                    value={notes}
+                    onChangeText={setNotes}
+                    placeholder="Observations, temperature, weather, etc."
+                    placeholderTextColor={tokens.color.textPlaceholder}
+                    multiline={true}
+                    numberOfLines={3}
+                  />
+                </View>
+              </ScrollView>
+
+              {/* Modal Buttons */}
+              <View style={s.modalButtonRow}>
+                <TouchableOpacity
+                  style={[s.modalButton, s.modalButtonCancel]}
+                  onPress={() => setModalVisible(false)}
+                  disabled={isSaving}
+                >
+                  <Text style={s.modalButtonTextCancel}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[s.modalButton, s.modalButtonConfirm]}
+                  onPress={handleFinalSave}
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={s.modalButtonTextConfirm}>Confirm & Save</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </GestureHandlerRootView>
   );
@@ -817,5 +957,90 @@ const s = StyleSheet.create({
   },
   saveButtonTextDisabled: {
     color: tokens.color.disabledText,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContainer: {
+    backgroundColor: tokens.color.bgPrimary,
+    borderRadius: tokens.radius.card,
+    width: "100%",
+    maxWidth: 360,
+    padding: 24,
+    ...tokens.shadow.card,
+    maxHeight: "85%",
+  },
+  modalTitle: {
+    ...tokens.font.title,
+    fontSize: 20,
+    marginBottom: 6,
+  },
+  modalSubtitle: {
+    ...tokens.font.subtitle,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 20,
+  },
+  modalScroll: {
+    maxHeight: 320,
+    marginBottom: 20,
+  },
+  modalInputGroup: {
+    marginBottom: 16,
+    gap: 6,
+  },
+  modalLabel: {
+    ...tokens.font.sectionLabel,
+    fontSize: 12,
+  },
+  modalInput: {
+    backgroundColor: tokens.color.bgMuted,
+    borderWidth: 1,
+    borderColor: tokens.color.borderDefault,
+    borderRadius: tokens.radius.toggleInner,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: tokens.color.textPrimary,
+  },
+  modalInputMultiline: {
+    height: 80,
+    textAlignVertical: "top",
+  },
+  modalButtonRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 8,
+  },
+  modalButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: tokens.radius.button,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalButtonCancel: {
+    backgroundColor: tokens.color.bgMuted,
+    borderWidth: 1,
+    borderColor: tokens.color.borderDefault,
+  },
+  modalButtonConfirm: {
+    backgroundColor: tokens.color.accentBlue,
+    ...tokens.shadow.cta,
+  },
+  modalButtonTextCancel: {
+    color: tokens.color.textSecondary,
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  modalButtonTextConfirm: {
+    color: "white",
+    fontWeight: "700",
+    fontSize: 14,
   },
 });

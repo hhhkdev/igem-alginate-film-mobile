@@ -14,19 +14,25 @@ import {
   AlertTriangle,
   Home,
   ArrowLeft,
+  MapPin,
+  FlaskConical,
+  FileText,
+  Map as MapIcon,
 } from "lucide-react-native";
+import MiniMapView from "../../components/MiniMapView";
 
 export default function ResultScreen() {
-  const { area, concentration } = useLocalSearchParams();
+  const { area, concentration, locationName, sampleName, notes, latitude, longitude } = useLocalSearchParams();
 
   const resultArea = parseFloat(area as string) || 0;
   const resultConcentration = parseFloat(concentration as string) || 0;
 
   const isDetected = resultConcentration > 0;
+  const hasCoords = !!latitude && !!longitude;
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Back Button */}
         <TouchableOpacity
           onPress={() => safeGoBack()}
@@ -81,6 +87,27 @@ export default function ResultScreen() {
               </Text>
             </View>
 
+            {/* Custom Metadata Details */}
+            {sampleName ? (
+              <View style={[styles.statRow, styles.statRowBorder]}>
+                <Text style={styles.statLabel}>Sample Name</Text>
+                <View style={styles.badgeWrapper}>
+                  <FlaskConical size={14} color={tokens.color.accentBlue} />
+                  <Text style={styles.statValue}>{sampleName}</Text>
+                </View>
+              </View>
+            ) : null}
+
+            {locationName ? (
+              <View style={[styles.statRow, styles.statRowBorder]}>
+                <Text style={styles.statLabel}>Location</Text>
+                <View style={styles.badgeWrapper}>
+                  <MapPin size={14} color={tokens.color.accentRed} />
+                  <Text style={styles.statValue} numberOfLines={1}>{locationName}</Text>
+                </View>
+              </View>
+            ) : null}
+
             <View style={[styles.statRow, styles.statRowBorder]}>
               <Text style={styles.statLabel}>Reaction Area</Text>
               <View style={styles.statValueRow}>
@@ -107,20 +134,54 @@ export default function ResultScreen() {
                 <Text style={styles.statUnit}>ppm</Text>
               </View>
             </View>
+
+            {/* Platform-Isolated Mini Map Component (지도를 통해서 볼 수 있어야해) */}
+            {hasCoords ? (
+              <MiniMapView
+                latitude={parseFloat(latitude as string)}
+                longitude={parseFloat(longitude as string)}
+                isDetected={isDetected}
+              />
+            ) : null}
+
+            {/* Notes Section */}
+            {notes ? (
+              <View style={styles.notesBlock}>
+                <View style={styles.notesHeader}>
+                  <FileText size={14} color={tokens.color.textMuted} />
+                  <Text style={styles.notesTitle}>Notes</Text>
+                </View>
+                <Text style={styles.notesText}>{notes}</Text>
+              </View>
+            ) : null}
           </View>
         </View>
 
-        {/* Home Button */}
+        {/* Multi-tiered CTAs linking directly to the DataMap */}
         <View style={styles.bottomAction}>
+          {hasCoords && (
+            <TouchableOpacity
+              style={styles.mapLinkButton}
+              onPress={() => {
+                router.push("/map");
+              }}
+            >
+              <MapIcon size={20} color="white" />
+              <Text style={styles.mapLinkButtonText}>View on Data Map</Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
-            style={styles.homeButton}
+            style={[styles.homeButton, hasCoords && styles.homeButtonSubordinated]}
             onPress={() => {
               router.dismissAll();
               router.replace("/");
             }}
           >
-            <Home size={20} color="white" />
-            <Text style={styles.homeButtonText}>Return to Home</Text>
+            <Home size={20} color={hasCoords ? tokens.color.textPrimary : "white"} />
+            <Text style={[styles.homeButtonText, hasCoords && styles.homeButtonTextSubordinated]}>
+              Return to Home
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -226,10 +287,58 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: tokens.color.textMuted,
   },
+
+  // Notes Block
+  notesBlock: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: tokens.color.bgMuted,
+    borderRadius: tokens.radius.toggleInner,
+    borderLeftWidth: 3,
+    borderLeftColor: tokens.color.accentBlue,
+    width: "100%",
+  },
+  notesHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
+  },
+  notesTitle: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: tokens.color.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  notesText: {
+    fontSize: 13,
+    color: tokens.color.textSecondary,
+    lineHeight: 18,
+    fontStyle: "italic",
+  },
+
+  // Bottom action layouts
   bottomAction: {
     width: "100%",
     paddingTop: 32,
     paddingBottom: 16,
+    gap: 12,
+  },
+  mapLinkButton: {
+    width: "100%",
+    backgroundColor: tokens.color.accentBlue,
+    height: tokens.button.ctaHeight,
+    borderRadius: tokens.radius.button,
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
+    ...tokens.shadow.cta,
+  },
+  mapLinkButtonText: {
+    ...tokens.font.ctaText,
+    color: "white",
   },
   homeButton: {
     width: "100%",
@@ -242,8 +351,28 @@ const styles = StyleSheet.create({
     gap: 8,
     ...tokens.shadow.ctaDark,
   },
+  homeButtonSubordinated: {
+    backgroundColor: tokens.color.bgPrimary,
+    borderWidth: 1.5,
+    borderColor: tokens.color.borderDefault,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
   homeButtonText: {
     ...tokens.font.ctaText,
     marginLeft: 4,
+  },
+  homeButtonTextSubordinated: {
+    color: tokens.color.textPrimary,
+  },
+  badgeWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: tokens.color.bgMuted,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: tokens.radius.toggleInner,
+    maxWidth: "60%",
   },
 });

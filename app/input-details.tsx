@@ -104,7 +104,7 @@ export default function InputDetailsScreen() {
                       testMode === "experiment" && styles.methodTextActive,
                     ]}
                   >
-                    실험 모드 (Experiment)
+                    Experiment Mode
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -127,10 +127,18 @@ export default function InputDetailsScreen() {
                       testMode === "normal" && styles.methodTextActive,
                     ]}
                   >
-                    일반 모드 (Normal)
+                    Normal Field Mode
                   </Text>
                 </TouchableOpacity>
               </View>
+
+              {testMode === "normal" && (
+                <View style={styles.gpsHelperCard}>
+                  <Text style={styles.gpsHelperText}>
+                    💡 Normal Field Mode: The application will automatically measure your precise GPS coordinates in real-time during saving, mapping your heavy metal CuSO₄ score onto the geographic DataMap.
+                  </Text>
+                </View>
+              )}
 
               {/* Method Selection */}
               <Text style={styles.inputLabel}>Reference Object</Text>
@@ -378,5 +386,19 @@ const styles = StyleSheet.create({
   },
   submitTextDisabled: {
     color: tokens.color.disabledText,
+  },
+  gpsHelperCard: {
+    backgroundColor: tokens.color.bgMuted,
+    borderWidth: 1,
+    borderColor: tokens.color.borderDefault,
+    padding: 12,
+    borderRadius: tokens.radius.toggleInner,
+    marginBottom: 20,
+  },
+  gpsHelperText: {
+    fontSize: 12,
+    color: tokens.color.textSecondary,
+    lineHeight: 18,
+    fontStyle: "italic",
   },
 });
