@@ -39,7 +39,11 @@ export default function MapScreen() {
     // 2. Fetch current GPS location to center the map
     const fetchCurrentLocation = async () => {
       try {
-        const { status } = await Location.getForegroundPermissionsAsync();
+        let { status } = await Location.getForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          const permissionResponse = await Location.requestForegroundPermissionsAsync();
+          status = permissionResponse.status;
+        }
         if (status === 'granted') {
           const loc = await Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.Balanced

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Dimensions } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { tokens } from "../lib/design-tokens";
 
@@ -8,6 +8,11 @@ interface MiniMapViewProps {
   longitude: number;
   isDetected: boolean;
 }
+
+const { width: windowWidth, height: windowHeight } = Dimensions.get("window");
+const isTablet = Math.min(windowWidth, windowHeight) >= 600;
+const markerSize = isTablet ? 30 : 22;
+const markerInnerSize = isTablet ? 12 : 8;
 
 export default function MiniMapView({ latitude, longitude, isDetected }: MiniMapViewProps) {
   return (
@@ -27,8 +32,11 @@ export default function MiniMapView({ latitude, longitude, isDetected }: MiniMap
       >
         <Marker
           coordinate={{ latitude, longitude }}
-          pinColor={isDetected ? tokens.color.accentRed : tokens.color.accentBlue}
-        />
+        >
+          <View style={[styles.customMarker, { backgroundColor: isDetected ? tokens.color.accentRed : tokens.color.accentBlue }]} >
+            <View style={styles.customMarkerInner} />
+          </View>
+        </Marker>
       </MapView>
     </View>
   );
@@ -46,5 +54,25 @@ const styles = StyleSheet.create({
   },
   miniMap: {
     flex: 1,
+  },
+  customMarker: {
+    width: markerSize,
+    height: markerSize,
+    borderRadius: markerSize / 2,
+    borderWidth: isTablet ? 3 : 2,
+    borderColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  customMarkerInner: {
+    width: markerInnerSize,
+    height: markerInnerSize,
+    borderRadius: markerInnerSize / 2,
+    backgroundColor: "#ffffff",
   },
 });
