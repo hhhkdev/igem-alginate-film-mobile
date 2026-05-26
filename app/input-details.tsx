@@ -104,14 +104,14 @@ export default function InputDetailsScreen() {
                       testMode === "experiment" && styles.methodTextActive,
                     ]}
                   >
-                    Experiment Mode
+                    Practice Mode
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={async () => {
                     const { status } = await Location.requestForegroundPermissionsAsync();
                     if (status !== 'granted') {
-                      Alert.alert('Permission needed', 'Location permission is needed for normal mode.');
+                      Alert.alert('Permission needed', 'Location permission is needed for Live Map mode.');
                       return;
                     }
                     setTestMode("normal");
@@ -127,7 +127,7 @@ export default function InputDetailsScreen() {
                       testMode === "normal" && styles.methodTextActive,
                     ]}
                   >
-                    Normal Field Mode
+                    Live Map Mode
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -135,7 +135,7 @@ export default function InputDetailsScreen() {
               {testMode === "normal" && (
                 <View style={styles.gpsHelperCard}>
                   <Text style={styles.gpsHelperText}>
-                    💡 Normal Field Mode: The application will automatically measure your precise GPS coordinates in real-time during saving, mapping your heavy metal CuSO₄ score onto the geographic DataMap.
+                    💡 Live Map Mode: The application will automatically measure your precise GPS coordinates in real-time during saving, mapping your heavy metal CuSO₄ score onto the geographic DataMap.
                   </Text>
                 </View>
               )}

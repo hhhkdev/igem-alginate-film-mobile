@@ -7,71 +7,55 @@ import { ArrowLeft, Map as MapIcon, List, MapPin, FlaskConical, Calendar, FileTe
 import { safeGoBack } from "../lib/navigation";
 import { tokens } from "../lib/design-tokens";
 import { useRouter } from "expo-router";
+import * as Location from "expo-location";
 
-// Premium Demo Preset Dataset focused on KNU (Kyungpook National University) Campus stream
-const KNU_PRESETS: AnalysisResult[] = [
-  {
-    id: "preset_1",
-    date: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-    concentration: 24.5,
-    area: 48.2,
-    location: { latitude: 35.8892, longitude: 128.6102 },
-    locationName: "KNU IT Convergence Hall Stream",
-    sampleName: "Alginate Film - copper_01",
-    notes: "Strong red reaction detected. Immediate water purification monitoring recommended.",
-    mode: "normal"
-  },
-  {
-    id: "preset_2",
-    date: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
-    concentration: 8.2,
-    area: 18.5,
-    location: { latitude: 35.8905, longitude: 128.6121 },
-    locationName: "KNU Ilchungdam Fountain Pond",
-    sampleName: "Alginate Film - copper_02",
-    notes: "Low CuSO4 concentration response. Regular surveillance advised.",
-    mode: "normal"
-  },
-  {
-    id: "preset_3",
-    date: new Date(Date.now() - 86400000 * 3).toISOString(), // 3 days ago
-    concentration: 0.0,
-    area: 0.0,
-    location: { latitude: 35.8870, longitude: 128.6080 },
-    locationName: "KNU Main Gate Downstream",
-    sampleName: "Alginate Film - control_01",
-    notes: "No color reaction detected. Safe and clean stream flow confirmed.",
-    mode: "normal"
-  },
-  {
-    id: "preset_4",
-    date: new Date(Date.now() - 86400000 * 5).toISOString(), // 5 days ago
-    concentration: 35.0,
-    area: 62.4,
-    location: { latitude: 35.8861, longitude: 128.6130 },
-    locationName: "KNU East Gate Canal Junction",
-    sampleName: "Alginate Film - copper_danger_03",
-    notes: "Critically high copper reaction detected. Heavy metal threshold breached.",
-    mode: "normal"
-  }
-];
+
 
 export default function MapScreen() {
   const router = useRouter();
   const [markers, setMarkers] = useState<AnalysisResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"map" | "list">("map");
+  const [syncStatus, setSyncStatus] = useState<"success" | "fallback">("fallback");
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 35.8885,
+    longitude: 128.6105,
+    latitudeDelta: 0.018,
+    longitudeDelta: 0.018,
+  });
 
   useEffect(() => {
+    // 1. Fetch history markers
     getHistory().then((history) => {
       // Filter custom user history for entries with valid geo location
       const userGeoData = history.filter((h) => h.location);
+      setMarkers(userGeoData);
       
-      // Merge user custom geo data with premium presets to make map vibrant and fully operational
-      const mergedMapData = [...userGeoData, ...KNU_PRESETS];
-      setMarkers(mergedMapData);
+      const isSynced = (history as any).synced;
+      setSyncStatus(isSynced ? "success" : "fallback");
       setLoading(false);
     });
+
+    // 2. Fetch current GPS location to center the map
+    const fetchCurrentLocation = async () => {
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced
+          });
+          setMapRegion({
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+            latitudeDelta: 0.015,
+            longitudeDelta: 0.015,
+          });
+        }
+      } catch (e) {
+        console.error("Failed to fetch current location for map centering", e);
+      }
+    };
+    fetchCurrentLocation();
   }, []);
 
   if (loading) {
@@ -82,8 +66,8 @@ export default function MapScreen() {
     );
   }
 
-  // Focus initially on KNU Campus Stream center
-  const initialRegion = {
+  // Focus initially on KNU Campus Stream center as fallback
+  const defaultRegion = {
     latitude: 35.8885,
     longitude: 128.6105,
     latitudeDelta: 0.018,
@@ -124,7 +108,14 @@ export default function MapScreen() {
           <ArrowLeft size={24} color={tokens.color.iconDefault} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Contaminant Tracker</Text>
-        <View style={{ width: 40 }} />
+        
+        {/* Connection Status Badge */}
+        <View style={[styles.statusBadge, syncStatus === "success" ? styles.statusBadgeSuccess : styles.statusBadgeFallback]}>
+          <View style={[styles.statusDot, syncStatus === "success" ? styles.statusDotSuccess : styles.statusDotFallback]} />
+          <Text style={styles.statusBadgeText}>
+            {syncStatus === "success" ? "Live" : "Offline"}
+          </Text>
+        </View>
       </View>
 
       {/* Segmented Controller (Map vs List Toggle) */}
@@ -155,8 +146,9 @@ export default function MapScreen() {
       {/* Dual Presentation Views Rendering */}
       {activeTab === "map" ? (
         <CustomMapView
+          key={`${mapRegion.latitude}_${mapRegion.longitude}`}
           markers={markers}
-          initialRegion={initialRegion}
+          initialRegion={mapRegion}
         />
       ) : (
         <ScrollView style={styles.listScroll} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
@@ -443,5 +435,38 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     color: tokens.color.accentBlue,
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  statusBadgeSuccess: {
+    backgroundColor: tokens.color.accentBlueBg,
+    borderColor: tokens.color.accentBlue,
+  },
+  statusBadgeFallback: {
+    backgroundColor: "#fee2e2",
+    borderColor: tokens.color.accentRed,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusDotSuccess: {
+    backgroundColor: tokens.color.accentBlue,
+  },
+  statusDotFallback: {
+    backgroundColor: tokens.color.accentRed,
+  },
+  statusBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: tokens.color.textPrimary,
   },
 });

@@ -161,11 +161,20 @@ export default function CustomMapView({ markers, initialRegion }: CustomMapViewP
               '<div style="font-size: 11px; color: #64748b; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">' +
                 '<span>📍</span> ' + (marker.locationName || 'Unknown Location') +
               '</div>' +
-              '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; background-color: #f8fafc; padding: 6px 8px; border-radius: 6px; border: 1px solid #f1f5f9;">' +
-                '<span style="font-size: 11px; font-weight: 700; color: ' + color + '; background-color: ' + badgeBg + '; padding: 2px 6px; border-radius: 4px;">' + marker.concentration.toFixed(1) + ' ppm (' + badgeTitle + ')</span>' +
-                '<span style="font-size: 10px; color: #94a3b8;">' + new Date(marker.date).toLocaleDateString() + '</span>' +
+              '<div style="background-color: #f8fafc; padding: 8px 10px; border-radius: 8px; border: 1px solid #f1f5f9; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px;">' +
+                '<div style="display: flex; justify-content: space-between; align-items: center;">' +
+                  '<span style="font-size: 10px; color: #64748b; font-weight: 600;">Concentration</span>' +
+                  '<span style="font-size: 11px; font-weight: 700; color: ' + color + '; background-color: ' + badgeBg + '; padding: 2px 6px; border-radius: 4px;">' + marker.concentration.toFixed(1) + ' ppm (' + badgeTitle + ')</span>' +
+                '</div>' +
+                '<div style="display: flex; justify-content: space-between; align-items: center;">' +
+                  '<span style="font-size: 10px; color: #64748b; font-weight: 600;">Reaction Area</span>' +
+                  '<span style="font-size: 11px; font-weight: 700; color: #0f172a;">' + marker.area.toFixed(2) + ' mm²</span>' +
+                '</div>' +
+                '<div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 6px; margin-top: 2px;">' +
+                  '<span style="font-size: 10px; color: #64748b; font-weight: 600;">Date</span>' +
+                  '<span style="font-size: 10px; color: #475569; font-weight: 500;">' + new Date(marker.date).toLocaleDateString() + '</span>' +
+                '</div>' +
               '</div>' +
-              (marker.notes ? '<div style="font-size: 11px; color: #64748b; font-style: italic; margin-bottom: 8px; max-height: 40px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">&ldquo;' + marker.notes + '&rdquo;</div>' : '') +
               '<button ' +
                 'style="width: 100%; background-color: #3b82f6; color: white; border: none; padding: 8px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.25);" ' +
                 'onclick="window.parent.postMessage({type: \\'VIEW_RESULT\\', id: \\'' + marker.id + '\\'}, \\'*\\')">' +

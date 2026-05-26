@@ -22,7 +22,7 @@ import {
 import MiniMapView from "../../components/MiniMapView";
 
 export default function ResultScreen() {
-  const { area, concentration, locationName, sampleName, notes, latitude, longitude } = useLocalSearchParams();
+  const { area, concentration, locationName, sampleName, notes, latitude, longitude, synced } = useLocalSearchParams();
 
   const resultArea = parseFloat(area as string) || 0;
   const resultConcentration = parseFloat(concentration as string) || 0;
@@ -32,7 +32,11 @@ export default function ResultScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Back Button */}
         <TouchableOpacity
           onPress={() => safeGoBack()}
@@ -86,6 +90,18 @@ export default function ResultScreen() {
                 {new Date().toLocaleDateString()}
               </Text>
             </View>
+
+            {/* Sync Status Badge */}
+            {synced ? (
+              <View style={[styles.statRow, styles.statRowBorder]}>
+                <Text style={styles.statLabel}>Sync Status</Text>
+                <View style={[styles.syncStatusBadge, synced === "true" ? styles.syncSuccess : styles.syncFallback]}>
+                  <Text style={[styles.syncStatusText, synced === "true" ? styles.syncSuccessText : styles.syncFallbackText]}>
+                    {synced === "true" ? "🟢 Synced to Supabase" : "🔴 Offline Local Backup"}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
 
             {/* Custom Metadata Details */}
             {sampleName ? (
@@ -156,35 +172,35 @@ export default function ResultScreen() {
             ) : null}
           </View>
         </View>
+      </ScrollView>
 
-        {/* Multi-tiered CTAs linking directly to the DataMap */}
-        <View style={styles.bottomAction}>
-          {hasCoords && (
-            <TouchableOpacity
-              style={styles.mapLinkButton}
-              onPress={() => {
-                router.push("/map");
-              }}
-            >
-              <MapIcon size={20} color="white" />
-              <Text style={styles.mapLinkButtonText}>View on Data Map</Text>
-            </TouchableOpacity>
-          )}
-
+      {/* Multi-tiered CTAs linking directly to the DataMap */}
+      <View style={styles.bottomAction}>
+        {hasCoords && (
           <TouchableOpacity
-            style={[styles.homeButton, hasCoords && styles.homeButtonSubordinated]}
+            style={styles.mapLinkButton}
             onPress={() => {
-              router.dismissAll();
-              router.replace("/");
+              router.push("/map");
             }}
           >
-            <Home size={20} color={hasCoords ? tokens.color.textPrimary : "white"} />
-            <Text style={[styles.homeButtonText, hasCoords && styles.homeButtonTextSubordinated]}>
-              Return to Home
-            </Text>
+            <MapIcon size={20} color="white" />
+            <Text style={styles.mapLinkButtonText}>View on Data Map</Text>
           </TouchableOpacity>
-        </View>
-      </ScrollView>
+        )}
+
+        <TouchableOpacity
+          style={[styles.homeButton, hasCoords && styles.homeButtonSubordinated]}
+          onPress={() => {
+            router.dismissAll();
+            router.replace("/");
+          }}
+        >
+          <Home size={20} color={hasCoords ? tokens.color.textPrimary : "white"} />
+          <Text style={[styles.homeButtonText, hasCoords && styles.homeButtonTextSubordinated]}>
+            Return to Home
+          </Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -193,6 +209,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: tokens.color.bgScreen,
+  },
+  scrollView: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
@@ -321,7 +340,8 @@ const styles = StyleSheet.create({
   // Bottom action layouts
   bottomAction: {
     width: "100%",
-    paddingTop: 32,
+    paddingHorizontal: tokens.spacing.screenPadding,
+    paddingTop: 16,
     paddingBottom: 16,
     gap: 12,
   },
@@ -374,5 +394,26 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: tokens.radius.toggleInner,
     maxWidth: "60%",
+  },
+  syncStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: tokens.radius.toggleInner,
+  },
+  syncSuccess: {
+    backgroundColor: tokens.color.accentBlueBg,
+  },
+  syncFallback: {
+    backgroundColor: "#fee2e2",
+  },
+  syncStatusText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  syncSuccessText: {
+    color: tokens.color.accentBlue,
+  },
+  syncFallbackText: {
+    color: tokens.color.accentRed,
   },
 });

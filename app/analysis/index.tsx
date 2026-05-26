@@ -26,6 +26,7 @@ import { tokens } from "../../lib/design-tokens";
 import { detectRedRegion } from "../../lib/red-detection";
 import { analyzeConcentration } from "../../lib/calculations";
 import * as Location from "expo-location";
+import LocationPickerMap from "../../components/LocationPickerMap";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const SCREEN_HEIGHT = Dimensions.get("window").height;
@@ -44,6 +45,28 @@ export default function AnalysisScreen() {
   const [notes, setNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [locationCoords, setLocationCoords] = useState<{ latitude: number, longitude: number } | undefined>(undefined);
+
+  const defaultCoords = { latitude: 35.8885, longitude: 128.6105 };
+  const currentCoords = locationCoords || defaultCoords;
+
+  const handleLocationChange = async (coords: { latitude: number, longitude: number }) => {
+    setLocationCoords(coords);
+    try {
+      const geocode = await Location.reverseGeocodeAsync(coords);
+      if (geocode && geocode.length > 0) {
+        const address = geocode[0];
+        const formattedAddress = [
+          address.city || address.subregion,
+          address.street || address.name || address.district
+        ].filter(Boolean).join(" ");
+        if (formattedAddress) {
+          setLocationName(formattedAddress);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to reverse geocode selected coords", e);
+    }
+  };
 
   // Fetch current GPS coordinates and resolve human-readable address
   const fetchLocationAndGeocode = async () => {
@@ -86,7 +109,7 @@ export default function AnalysisScreen() {
     try {
       const finalLocName = locationName === "Fetching location..." ? "Unknown Location" : locationName;
 
-      await saveResult({
+      const saved = await saveResult({
         date: new Date().toISOString(),
         concentration: concentration,
         area: areaMm,
@@ -98,8 +121,16 @@ export default function AnalysisScreen() {
         notes: notes || "",
       });
 
+      const isSynced = (saved as any).synced;
+
       setModalVisible(false);
       setIsSaving(false);
+
+      if (isSynced) {
+        Alert.alert("Success", "Successfully synced contaminant record to Supabase Cloud Database!");
+      } else {
+        Alert.alert("Saved Locally", "Cloud sync was unavailable. Record saved locally as backup.");
+      }
 
       router.push({
         pathname: "/result",
@@ -112,6 +143,7 @@ export default function AnalysisScreen() {
           notes: notes || "",
           latitude: locationCoords?.latitude?.toString() || "",
           longitude: locationCoords?.longitude?.toString() || "",
+          synced: isSynced ? "true" : "false",
         },
       });
     } catch (error) {
@@ -587,7 +619,22 @@ export default function AnalysisScreen() {
                       await fetchLocationAndGeocode();
                     } else {
                       setLocationName("Laboratory (Indoor)");
-                      setLocationCoords(undefined);
+                      try {
+                        const { status } = await Location.getForegroundPermissionsAsync();
+                        if (status === 'granted') {
+                          const loc = await Location.getCurrentPositionAsync({
+                            accuracy: Location.Accuracy.Balanced
+                          });
+                          setLocationCoords({
+                            latitude: loc.coords.latitude,
+                            longitude: loc.coords.longitude,
+                          });
+                        } else {
+                          setLocationCoords(defaultCoords);
+                        }
+                      } catch (e) {
+                        setLocationCoords(defaultCoords);
+                      }
                     }
                   }}
                 >
@@ -622,7 +669,7 @@ export default function AnalysisScreen() {
               <ScrollView style={s.modalScroll} showsVerticalScrollIndicator={false}>
                 {/* Location Name */}
                 <View style={s.modalInputGroup}>
-                  <Text style={s.modalLabel}>Inspection Location</Text>
+                  <Text style={s.modalLabel}>Location Name</Text>
                   <TextInput
                     style={s.modalInput}
                     value={locationName}
@@ -630,6 +677,22 @@ export default function AnalysisScreen() {
                     placeholder="e.g. River, Campus, City"
                     placeholderTextColor={tokens.color.textPlaceholder}
                   />
+                </View>
+
+                {/* GPS Map Picker */}
+                <View style={s.modalInputGroup}>
+                  <Text style={s.modalLabel}>Pin Location on Map</Text>
+                  <Text style={s.coordsDisplay}>
+                    📍 Lat: {currentCoords.latitude.toFixed(6)}, Lng: {currentCoords.longitude.toFixed(6)}
+                  </Text>
+                  <LocationPickerMap
+                    latitude={currentCoords.latitude}
+                    longitude={currentCoords.longitude}
+                    onLocationSelect={handleLocationChange}
+                  />
+                  <Text style={s.helperText}>
+                    Tap the map or drag the marker to adjust coordinates.
+                  </Text>
                 </View>
 
                 {/* Sample Name */}
@@ -987,8 +1050,20 @@ const s = StyleSheet.create({
     marginBottom: 20,
   },
   modalScroll: {
-    maxHeight: 320,
+    maxHeight: 420,
     marginBottom: 20,
+  },
+  coordsDisplay: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: tokens.color.accentBlue,
+    marginBottom: 4,
+  },
+  helperText: {
+    fontSize: 11,
+    color: tokens.color.textPlaceholder,
+    marginTop: 4,
+    fontStyle: "italic",
   },
   modalInputGroup: {
     marginBottom: 16,
