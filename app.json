@@ -2,7 +2,7 @@
   "expo": {
     "scheme": "igem-alginate",
     "name": "igem-alginate-film-mobile",
-    "slug": "igem-alginate-film-mobile",
+    "slug": "alginate-film-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/logo-1024.png",
@@ -14,7 +14,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hhhk.igemalginatefilmmobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -23,6 +27,11 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.hhhk.igemalginatefilmmobile",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDkcCX-ee7h42FN0ld5mbCFBAUXdh2nkJA"
+        }
+      },
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
@@ -40,8 +49,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "13bbe308-7e5f-45f8-9808-7a2d0b642eaf"
+        "projectId": "652c2a0a-b4f9-4b08-8f21-b89ce41d6fad"
       }
-    }
+    },
+    "owner": "igemwiki"
   }
 }
