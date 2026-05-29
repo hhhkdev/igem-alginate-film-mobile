@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { View, StyleSheet, Dimensions } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { tokens } from "../lib/design-tokens";
@@ -7,6 +7,7 @@ interface MiniMapViewProps {
   latitude: number;
   longitude: number;
   isDetected: boolean;
+  ionType?: "Cu" | "Ca";
 }
 
 const { width: windowWidth, height: windowHeight } = Dimensions.get("window");
@@ -14,7 +15,7 @@ const isTablet = Math.min(windowWidth, windowHeight) >= 600;
 const markerSize = isTablet ? 30 : 22;
 const markerInnerSize = isTablet ? 12 : 8;
 
-export default function MiniMapView({ latitude, longitude, isDetected }: MiniMapViewProps) {
+export default function MiniMapView({ latitude, longitude, isDetected, ionType = "Cu" }: MiniMapViewProps) {
   return (
     <View style={styles.miniMapContainer}>
       <MapView
@@ -33,7 +34,14 @@ export default function MiniMapView({ latitude, longitude, isDetected }: MiniMap
         <Marker
           coordinate={{ latitude, longitude }}
         >
-          <View style={[styles.customMarker, { backgroundColor: isDetected ? tokens.color.accentRed : tokens.color.accentBlue }]} >
+          <View style={[
+            styles.customMarker, 
+            { 
+              backgroundColor: isDetected 
+                ? (ionType === "Ca" ? "#ea580c" : tokens.color.accentRed) 
+                : (ionType === "Ca" ? "#fbbf24" : tokens.color.accentBlue) 
+            }
+          ]} >
             <View style={styles.customMarkerInner} />
           </View>
         </Marker>

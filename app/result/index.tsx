@@ -22,13 +22,14 @@ import {
 import MiniMapView from "../../components/MiniMapView";
 
 export default function ResultScreen() {
-  const { area, concentration, locationName, sampleName, notes, latitude, longitude, synced } = useLocalSearchParams();
+  const { area, concentration, locationName, sampleName, notes, latitude, longitude, synced, ionType } = useLocalSearchParams();
 
   const resultArea = parseFloat(area as string) || 0;
   const resultConcentration = parseFloat(concentration as string) || 0;
 
   const isDetected = resultConcentration > 0;
   const hasCoords = !!latitude && !!longitude;
+  const currentIonType = (ionType === "Ca" ? "Ca" : "Cu") as "Cu" | "Ca";
 
   return (
     <SafeAreaView style={styles.container}>
@@ -71,7 +72,9 @@ export default function ResultScreen() {
           {/* Main Result Text */}
           <View style={styles.resultTextGroup}>
             <Text style={styles.resultTitle}>
-              {isDetected ? "Heavy Metal Detected" : "Analysis Complete"}
+              {isDetected 
+                ? (currentIonType === "Ca" ? "CaCl₂ Detected" : "CuSO₄ Detected") 
+                : "Analysis Complete"}
             </Text>
             <Text style={styles.resultDescription}>
               {isDetected
@@ -134,7 +137,7 @@ export default function ResultScreen() {
 
             <View style={styles.statRow}>
               <Text style={styles.statLabel}>
-                Estimated CuSO₄ Concentration
+                Estimated {currentIonType === "Ca" ? "CaCl₂" : "CuSO₄"} Concentration
               </Text>
               <View style={styles.statValueRow}>
                 <Text
@@ -157,6 +160,7 @@ export default function ResultScreen() {
                 latitude={parseFloat(latitude as string)}
                 longitude={parseFloat(longitude as string)}
                 isDetected={isDetected}
+                ionType={currentIonType}
               />
             ) : null}
 

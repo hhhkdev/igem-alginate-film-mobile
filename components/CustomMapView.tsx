@@ -1,4 +1,5 @@
-import React, { useEffect } from "react";
+import * as React from "react";
+import { useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 
@@ -16,6 +17,7 @@ interface MarkerData {
   locationName?: string;
   sampleName?: string;
   notes?: string;
+  ionType?: "Cu" | "Ca";
 }
 
 interface CustomMapViewProps {
@@ -26,10 +28,28 @@ interface CustomMapViewProps {
     latitudeDelta: number;
     longitudeDelta: number;
   };
+  region?: {
+    latitude: number;
+    longitude: number;
+    latitudeDelta: number;
+    longitudeDelta: number;
+  };
 }
 
-export default function CustomMapView({ markers, initialRegion }: CustomMapViewProps) {
+export default function CustomMapView({ markers, initialRegion, region }: CustomMapViewProps) {
   const router = useRouter();
+  const iframeRef = React.useRef<HTMLIFrameElement>(null);
+
+  // Smoothly dispatch camera focus coordinates to Leaflet iframe
+  useEffect(() => {
+    if (region && iframeRef.current) {
+      iframeRef.current.contentWindow?.postMessage({
+        type: "PAN_TO_REGION",
+        latitude: region.latitude,
+        longitude: region.longitude
+      }, "*");
+    }
+  }, [region]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -47,6 +67,7 @@ export default function CustomMapView({ markers, initialRegion }: CustomMapViewP
               notes: marker.notes || "",
               latitude: marker.location?.latitude?.toString() || "",
               longitude: marker.location?.longitude?.toString() || "",
+              ionType: marker.ionType || "Cu",
             },
           });
         }
@@ -78,6 +99,11 @@ export default function CustomMapView({ markers, initialRegion }: CustomMapViewP
           width: 100%;
           height: 100%;
           background-color: #f8fafc;
+        }
+        @keyframes pulse {
+          0% { transform: scale(0.8); opacity: 0.9; }
+          70% { transform: scale(1.8); opacity: 0; }
+          100% { transform: scale(0.8); opacity: 0; }
         }
         .custom-popup .leaflet-popup-content-wrapper {
           background: #ffffff;
@@ -142,9 +168,20 @@ export default function CustomMapView({ markers, initialRegion }: CustomMapViewP
         markersData.forEach(function(marker) {
           if (!marker.location || typeof marker.location.latitude !== 'number' || typeof marker.location.longitude !== 'number') return;
           
-          var color = marker.concentration === 0 ? '#3b82f6' : (marker.concentration < 15 ? '#f97316' : '#ef4444');
-          var badgeTitle = marker.concentration === 0 ? 'SAFE' : (marker.concentration < 15 ? 'WARNING' : 'DANGER');
-          var badgeBg = marker.concentration === 0 ? '#dbeafe' : (marker.concentration < 15 ? '#ffedd5' : '#fee2e2');
+          var ionType = marker.ionType || 'Cu';
+          var color, badgeTitle, badgeBg, ionName;
+          
+          if (ionType === 'Ca') {
+            ionName = 'CaCl₂';
+            color = marker.concentration === 0 ? '#fbbf24' : (marker.concentration < 15 ? '#f97316' : '#d97706');
+            badgeTitle = marker.concentration === 0 ? 'SAFE' : (marker.concentration < 15 ? 'WARNING' : 'DANGER');
+            badgeBg = marker.concentration === 0 ? '#fef3c7' : (marker.concentration < 15 ? '#ffedd5' : '#fee2e2');
+          } else {
+            ionName = 'CuSO₄';
+            color = marker.concentration === 0 ? '#3b82f6' : (marker.concentration < 15 ? '#8b5cf6' : '#ef4444');
+            badgeTitle = marker.concentration === 0 ? 'SAFE' : (marker.concentration < 15 ? 'WARNING' : 'DANGER');
+            badgeBg = marker.concentration === 0 ? '#dbeafe' : (marker.concentration < 15 ? '#f3e8ff' : '#fee2e2');
+          }
 
           var customIcon = L.divIcon({
             className: 'custom-pin',
@@ -157,13 +194,13 @@ export default function CustomMapView({ markers, initialRegion }: CustomMapViewP
 
           var popupHtml = 
             '<div style="font-family: -apple-system, BlinkMacSystemFont, \\'Segoe UI\\', Roboto, Helvetica, Arial, sans-serif; padding: 6px; min-width: 200px;">' +
-              '<div style="font-weight: 700; font-size: 14px; color: #0f172a; margin-bottom: 2px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">' + (marker.sampleName || 'Field Sample') + '</div>' +
+              '<div style="font-weight: 700; font-size: 14px; color: #0f172a; margin-bottom: 2px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">' + (marker.sampleName || 'Field Sample') + ' (' + ionName + ')' + '</div>' +
               '<div style="font-size: 11px; color: #64748b; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">' +
                 '<span>📍</span> ' + (marker.locationName || 'Unknown Location') +
               '</div>' +
               '<div style="background-color: #f8fafc; padding: 8px 10px; border-radius: 8px; border: 1px solid #f1f5f9; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px;">' +
                 '<div style="display: flex; justify-content: space-between; align-items: center;">' +
-                  '<span style="font-size: 10px; color: #64748b; font-weight: 600;">Concentration</span>' +
+                  '<span style="font-size: 10px; color: #64748b; font-weight: 600;">' + ionName + ' Concentration</span>' +
                   '<span style="font-size: 11px; font-weight: 700; color: ' + color + '; background-color: ' + badgeBg + '; padding: 2px 6px; border-radius: 4px;">' + marker.concentration.toFixed(1) + ' ppm (' + badgeTitle + ')</span>' +
                 '</div>' +
                 '<div style="display: flex; justify-content: space-between; align-items: center;">' +
@@ -191,6 +228,35 @@ export default function CustomMapView({ markers, initialRegion }: CustomMapViewP
         });
 
         map.addLayer(markersCluster);
+
+        // Tracing and rendering User Current Location on Leaflet Map
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(function(position) {
+            var lat = position.coords.latitude;
+            var lng = position.coords.longitude;
+            
+            var userIcon = L.divIcon({
+              className: 'user-location-pin',
+              html: '<div style="position: relative; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;">' +
+                      '<div style="position: absolute; width: 18px; height: 18px; border-radius: 50%; background-color: rgba(59,130,246,0.3); border: 1.5px solid rgba(59,130,246,0.5); animation: pulse 2s infinite;"></div>' +
+                      '<div style="width: 10px; height: 10px; border-radius: 50%; background-color: #3b82f6; border: 2px solid #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.3); z-index: 10;"></div>' +
+                    '</div>',
+              iconSize: [20, 20],
+              iconAnchor: [10, 10]
+            });
+            
+            L.marker([lat, lng], { icon: userIcon }).addTo(map).bindPopup("My Location", { closeButton: false });
+          }, function(error) {
+            console.warn("User location unavailable on web leaflet map:", error);
+          });
+        }
+
+        // Listen for parent map camera center sync messages
+        window.addEventListener("message", function(event) {
+          if (event.data && event.data.type === "PAN_TO_REGION") {
+            map.setView([event.data.latitude, event.data.longitude], 14, { animate: true, duration: 1.2 });
+          }
+        });
       </script>
     </body>
     </html>
@@ -199,6 +265,7 @@ export default function CustomMapView({ markers, initialRegion }: CustomMapViewP
   return (
     <View style={styles.container}>
       <iframe
+        ref={iframeRef}
         srcDoc={srcDoc}
         style={styles.iframe as any}
         title="Interactive Database Contaminant Map"
@@ -217,6 +284,5 @@ const styles = StyleSheet.create({
   iframe: {
     width: "100%",
     height: "100%",
-    border: 0,
   },
 });

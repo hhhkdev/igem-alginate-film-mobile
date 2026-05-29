@@ -13,6 +13,7 @@ export interface AnalysisResult {
   sampleName?: string;
   experimentRound?: number;
   notes?: string;
+  ionType?: "Cu" | "Ca";
 }
 
 const STORAGE_KEY = "@analysis_history";
@@ -49,6 +50,7 @@ export const saveResult = async (result: Omit<AnalysisResult, "id">) => {
           location_name: result.locationName || null,
           sample_name: result.sampleName || "Sample A",
           notes: result.notes || null,
+          ion_type: result.ionType || "Cu",
         })
         .select();
 
@@ -100,6 +102,7 @@ export const getHistory = async (): Promise<AnalysisResult[]> => {
           locationName: row.location_name || undefined,
           sampleName: row.sample_name || undefined,
           notes: row.notes || undefined,
+          ionType: (row.ion_type as "Cu" | "Ca") || "Cu",
         }));
         (results as any).synced = true;
         return results;

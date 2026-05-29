@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { View, StyleSheet } from "react-native";
 import { tokens } from "../lib/design-tokens";
 
@@ -6,9 +6,10 @@ interface MiniMapViewProps {
   latitude: number;
   longitude: number;
   isDetected: boolean;
+  ionType?: "Cu" | "Ca";
 }
 
-export default function MiniMapView({ latitude, longitude }: MiniMapViewProps) {
+export default function MiniMapView({ latitude, longitude, isDetected, ionType = "Cu" }: MiniMapViewProps) {
   // Embed standard Google Map focused on precise coordinate - Zero API Keys required!
   const mapUrl = `https://maps.google.com/maps?q=${latitude},${longitude}&z=16&output=embed`;
 
@@ -38,6 +39,6 @@ const styles = StyleSheet.create({
   iframe: {
     width: "100%",
     height: "100%",
-    border: 0,
+    borderWidth: 0,
   },
 });

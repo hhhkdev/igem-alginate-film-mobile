@@ -1,4 +1,5 @@
-import React, { useEffect } from "react";
+import * as React from "react";
+import { useEffect, useRef } from "react";
 import { View, StyleSheet } from "react-native";
 import { tokens } from "../lib/design-tokens";
 
@@ -9,9 +10,33 @@ interface LocationPickerMapProps {
 }
 
 export default function LocationPickerMap({ latitude, longitude, onLocationSelect }: LocationPickerMapProps) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const initialCoords = useRef({ latitude, longitude });
+  const lastPickedCoords = useRef({ latitude, longitude });
+
+  // Update dynamic location coordinates in Leaflet map via postMessage to bypass iframe reload
+  useEffect(() => {
+    // Avoid double trigger if the coordinate change was emitted from our own drag/tap event
+    if (latitude === lastPickedCoords.current.latitude && longitude === lastPickedCoords.current.longitude) {
+      return;
+    }
+    
+    if (iframeRef.current) {
+      iframeRef.current.contentWindow?.postMessage({
+        type: "UPDATE_LOCATION",
+        latitude,
+        longitude
+      }, "*");
+    }
+  }, [latitude, longitude]);
+
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === "LOCATION_PICKED") {
+        lastPickedCoords.current = {
+          latitude: event.data.latitude,
+          longitude: event.data.longitude,
+        };
         onLocationSelect({
           latitude: event.data.latitude,
           longitude: event.data.longitude,
@@ -49,13 +74,13 @@ export default function LocationPickerMap({ latitude, longitude, onLocationSelec
         var map = L.map('map', {
           zoomControl: true,
           attributionControl: false
-        }).setView([${latitude}, ${longitude}], 15);
+        }).setView([${initialCoords.current.latitude}, ${initialCoords.current.longitude}], 15);
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
           maxZoom: 19
         }).addTo(map);
 
-        var marker = L.marker([${latitude}, ${longitude}], { draggable: true }).addTo(map);
+        var marker = L.marker([${initialCoords.current.latitude}, ${initialCoords.current.longitude}], { draggable: true }).addTo(map);
 
         function updateLocation(lat, lng) {
           window.parent.postMessage({ type: 'LOCATION_PICKED', latitude: lat, longitude: lng }, '*');
@@ -72,6 +97,16 @@ export default function LocationPickerMap({ latitude, longitude, onLocationSelec
           marker.setLatLng([lat, lng]);
           updateLocation(lat, lng);
         });
+
+        // Listen for external coordinate updates (e.g. from GPS auto locate) without reloading iframe
+        window.addEventListener("message", function(event) {
+          if (event.data && event.data.type === "UPDATE_LOCATION") {
+            var newLat = event.data.latitude;
+            var newLng = event.data.longitude;
+            marker.setLatLng([newLat, newLng]);
+            map.panTo([newLat, newLng]);
+          }
+        });
       </script>
     </body>
     </html>
@@ -80,6 +115,7 @@ export default function LocationPickerMap({ latitude, longitude, onLocationSelec
   return (
     <View style={styles.container}>
       <iframe
+        ref={iframeRef}
         srcDoc={srcDoc}
         style={styles.iframe as any}
         title="Location Picker Map"
@@ -102,6 +138,6 @@ const styles = StyleSheet.create({
   iframe: {
     width: "100%",
     height: "100%",
-    border: 0,
+    borderWidth: 0,
   },
 });

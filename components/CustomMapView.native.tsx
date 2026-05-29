@@ -1,9 +1,12 @@
-import React, { useState } from "react";
-import { View, StyleSheet, Text, TouchableOpacity, ScrollView, Dimensions } from "react-native";
+import * as React from "react";
+import { useState, useRef } from "react";
+import { View, StyleSheet, Text, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator } from "react-native";
 import MapView, { Marker } from "react-native-maps";
+const MapMarker = Marker as any;
 import { useRouter } from "expo-router";
 import { tokens } from "../lib/design-tokens";
-import { MapPin, FlaskConical, Calendar, ArrowRight, X } from "lucide-react-native";
+import { MapPin, FlaskConical, Calendar, ArrowRight, X, Locate } from "lucide-react-native";
+import * as Location from "expo-location";
 
 interface LocationData {
   latitude: number;
@@ -19,11 +22,18 @@ interface MarkerData {
   locationName?: string;
   sampleName?: string;
   notes?: string;
+  ionType?: "Cu" | "Ca";
 }
 
 interface CustomMapViewProps {
   markers: MarkerData[];
   initialRegion: {
+    latitude: number;
+    longitude: number;
+    latitudeDelta: number;
+    longitudeDelta: number;
+  };
+  region?: {
     latitude: number;
     longitude: number;
     latitudeDelta: number;
@@ -46,8 +56,11 @@ const markerSize = isTablet ? 30 : 22;
 const markerInnerSize = isTablet ? 12 : 8;
 const clusterSize = isTablet ? 44 : 32;
 
-export default function CustomMapView({ markers, initialRegion }: CustomMapViewProps) {
+export default function CustomMapView({ markers, initialRegion, region }: CustomMapViewProps) {
   const router = useRouter();
+  const mapRef = useRef<any>(null);
+  const [locating, setLocating] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
   const [selectedCluster, setSelectedCluster] = useState<Cluster | null>(null);
   const [currentRegion, setCurrentRegion] = useState({
@@ -57,11 +70,56 @@ export default function CustomMapView({ markers, initialRegion }: CustomMapViewP
     longitudeDelta: initialRegion.longitudeDelta,
   });
 
-  // Helper to determine marker color based on CuSO4 toxicity
-  const getMarkerColor = (ppm: number) => {
-    if (ppm === 0) return "#3b82f6"; // Safe - Blue
-    if (ppm < 15) return "#f97316"; // Warning - Orange
-    return "#ef4444"; // Danger - Red
+  // Smoothly animate map camera when external region changes
+  React.useEffect(() => {
+    if (region && mapRef.current) {
+      mapRef.current.animateToRegion({
+        latitude: region.latitude,
+        longitude: region.longitude,
+        latitudeDelta: region.latitudeDelta || 0.015,
+        longitudeDelta: region.longitudeDelta || 0.015,
+      }, 1000);
+    }
+  }, [region]);
+
+  const handleGoToMyLocation = async () => {
+    if (locating) return;
+    setLocating(true);
+    try {
+      let { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        const permissionResponse = await Location.requestForegroundPermissionsAsync();
+        status = permissionResponse.status;
+      }
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced
+        });
+        mapRef.current?.animateToRegion({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+          latitudeDelta: 0.012,
+          longitudeDelta: 0.012,
+        }, 1000);
+      }
+    } catch (e) {
+      console.error("Failed to get current location for map centering", e);
+    } finally {
+      setLocating(false);
+    }
+  };
+
+  // Helper to determine marker color based on toxicity and ion type
+  const getMarkerColor = (ppm: number, ionType: "Cu" | "Ca" = "Cu") => {
+    if (ionType === "Ca") {
+      if (ppm === 0) return "#fbbf24"; // Safe - Amber/Yellow
+      if (ppm < 15) return "#f97316"; // Warning - Orange
+      return "#d97706"; // Danger - Dark Amber
+    } else {
+      if (ppm === 0) return "#3b82f6"; // Safe - Blue
+      if (ppm < 15) return "#8b5cf6"; // Warning - Purple
+      return "#ef4444"; // Danger - Red
+    }
   };
 
   // Helper to determine warning levels for display styling
@@ -103,6 +161,7 @@ export default function CustomMapView({ markers, initialRegion }: CustomMapViewP
         notes: selectedMarker.notes || "",
         latitude: selectedMarker.location?.latitude?.toString() || "",
         longitude: selectedMarker.location?.longitude?.toString() || "",
+        ionType: selectedMarker.ionType || "Cu",
       },
     });
   };
@@ -148,8 +207,18 @@ export default function CustomMapView({ markers, initialRegion }: CustomMapViewP
   return (
     <View style={styles.container}>
       <MapView 
+        {...({ ref: mapRef } as any)}
         style={styles.map} 
         initialRegion={initialRegion}
+        showsUserLocation={true}
+        onUserLocationChange={(e) => {
+          if (e.nativeEvent.coordinate) {
+            setUserLocation({
+              latitude: e.nativeEvent.coordinate.latitude,
+              longitude: e.nativeEvent.coordinate.longitude,
+            });
+          }
+        }}
         onRegionChangeComplete={(region) => {
           setCurrentRegion(region);
         }}
@@ -162,7 +231,7 @@ export default function CustomMapView({ markers, initialRegion }: CustomMapViewP
           if (cluster.markers.length === 1) {
             const marker = cluster.markers[0];
             return (
-              <Marker
+              <MapMarker
                 key={cluster.id}
                 coordinate={{
                   latitude: cluster.latitude,
@@ -173,14 +242,21 @@ export default function CustomMapView({ markers, initialRegion }: CustomMapViewP
                   setSelectedCluster(null);
                 }}
               >
-                <View style={[styles.customMarker, { backgroundColor: getMarkerColor(marker.concentration) }]}>
+                <View style={[
+                  styles.customMarker, 
+                  { 
+                    backgroundColor: getMarkerColor(marker.concentration, marker.ionType || "Cu"),
+                    borderColor: marker.ionType === "Ca" ? "#ea580c" : "#3b82f6"
+                  }
+                ]}>
                   <View style={styles.customMarkerInner} />
                 </View>
-              </Marker>
+              </MapMarker>
             );
           } else {
+            const firstMarker = cluster.markers[0];
             return (
-              <Marker
+              <MapMarker
                 key={cluster.id}
                 coordinate={{
                   latitude: cluster.latitude,
@@ -191,14 +267,48 @@ export default function CustomMapView({ markers, initialRegion }: CustomMapViewP
                   setSelectedMarker(null);
                 }}
               >
-                <View style={[styles.clusterMarker, { backgroundColor: getMarkerColor(cluster.highestConcentration) }]}>
+                <View style={[
+                  styles.clusterMarker, 
+                  { 
+                    backgroundColor: getMarkerColor(cluster.highestConcentration, firstMarker?.ionType || "Cu"),
+                    borderColor: firstMarker?.ionType === "Ca" ? "#ea580c" : "#3b82f6"
+                  }
+                ]}>
                   <Text style={styles.clusterMarkerText}>{cluster.markers.length}</Text>
                 </View>
-              </Marker>
+              </MapMarker>
             );
           }
         })}
+        {/* User Current Location Marker Overlay */}
+        {userLocation && (
+          <MapMarker
+            key="user-current-location"
+            coordinate={userLocation}
+            title="My Location"
+            description="You are currently here"
+          >
+            <View style={styles.myLocationMarkerContainer}>
+              <View style={styles.myLocationOuterPulse} />
+              <View style={styles.myLocationInnerCore} />
+            </View>
+          </MapMarker>
+        )}
       </MapView>
+
+      {/* Locate Me Floating Button */}
+      <TouchableOpacity 
+        style={styles.locateButton} 
+        onPress={handleGoToMyLocation}
+        activeOpacity={0.8}
+        disabled={locating}
+      >
+        {locating ? (
+          <ActivityIndicator size="small" color={tokens.color.accentBlue} />
+        ) : (
+          <Locate size={20} color={tokens.color.accentBlue} />
+        )}
+      </TouchableOpacity>
 
       {/* Floating Bottom sheet details card (for single marker) */}
       {selectedMarker && (
@@ -223,6 +333,13 @@ export default function CustomMapView({ markers, initialRegion }: CustomMapViewP
                     {selectedMarker.concentration.toFixed(1)} ppm ({getSeverityStyles(selectedMarker.concentration).title})
                   </Text>
                 </View>
+
+                {/* Dynamic Ion Badge in Bottom Detail Card */}
+                <View style={[styles.ionBadge, selectedMarker.ionType === "Ca" ? styles.ionBadgeCa : styles.ionBadgeCu]}>
+                  <Text style={[styles.ionBadgeText, selectedMarker.ionType === "Ca" ? styles.ionBadgeTextCa : styles.ionBadgeTextCu]}>
+                    {selectedMarker.ionType === "Ca" ? "CaCl₂" : "CuSO₄"}
+                  </Text>
+                </View>
               </View>
               <View style={styles.dateRow}>
                 <Calendar size={10} color={tokens.color.textMuted} />
@@ -234,7 +351,7 @@ export default function CustomMapView({ markers, initialRegion }: CustomMapViewP
 
             {/* Core details */}
             <View style={styles.locationTitleRow}>
-              <MapPin size={14} color={getMarkerColor(selectedMarker.concentration)} />
+              <MapPin size={14} color={getMarkerColor(selectedMarker.concentration, selectedMarker.ionType || "Cu")} />
               <Text style={styles.locationText} numberOfLines={1}>
                 {selectedMarker.locationName || "Unknown Location"}
               </Text>
@@ -283,8 +400,7 @@ export default function CustomMapView({ markers, initialRegion }: CustomMapViewP
             </Text>
             
             <ScrollView 
-              style={styles.clusterList} 
-              maxHeight={200}
+              style={[styles.clusterList, { maxHeight: 200 }]} 
               showsVerticalScrollIndicator={true}
             >
               {selectedCluster.markers.map((marker) => {
@@ -305,12 +421,13 @@ export default function CustomMapView({ markers, initialRegion }: CustomMapViewP
                           notes: marker.notes || "",
                           latitude: marker.location?.latitude?.toString() || "",
                           longitude: marker.location?.longitude?.toString() || "",
+                          ionType: marker.ionType || "Cu",
                         },
                       });
                     }}
                   >
                     <View style={styles.clusterItemLeft}>
-                      <View style={[styles.miniStatusDot, { backgroundColor: getMarkerColor(marker.concentration) }]} />
+                      <View style={[styles.miniStatusDot, { backgroundColor: getMarkerColor(marker.concentration, marker.ionType || "Cu") }]} />
                       <View style={{ flex: 1 }}>
                         <Text style={styles.clusterItemName} numberOfLines={1}>
                           {marker.sampleName || "Sample"}
@@ -325,6 +442,11 @@ export default function CustomMapView({ markers, initialRegion }: CustomMapViewP
                       <View style={[styles.concentrationBadge, { backgroundColor: severity.badgeBg, paddingHorizontal: 6, paddingVertical: 2 }]}>
                         <Text style={[styles.concentrationText, { color: severity.badgeText, fontSize: 10 }]}>
                           {marker.concentration.toFixed(1)} ppm
+                        </Text>
+                      </View>
+                      <View style={[styles.ionBadge, marker.ionType === "Ca" ? styles.ionBadgeCa : styles.ionBadgeCu]}>
+                        <Text style={[styles.ionBadgeText, marker.ionType === "Ca" ? styles.ionBadgeTextCa : styles.ionBadgeTextCu]}>
+                          {marker.ionType === "Ca" ? "Ca" : "Cu"}
                         </Text>
                       </View>
                       <ArrowRight size={14} color={tokens.color.textPlaceholder} />
@@ -343,6 +465,76 @@ export default function CustomMapView({ markers, initialRegion }: CustomMapViewP
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  myLocationMarkerContainer: {
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  myLocationOuterPulse: {
+    position: "absolute",
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "rgba(59, 130, 246, 0.25)",
+    borderWidth: 1.5,
+    borderColor: "rgba(59, 130, 246, 0.4)",
+  },
+  myLocationInnerCore: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#3b82f6",
+    borderWidth: 2,
+    borderColor: "#ffffff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    elevation: 2,
+  },
+  locateButton: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    backgroundColor: tokens.color.bgPrimary,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: tokens.color.borderDefault,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 999,
+  },
+  ionBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 6,
+    alignSelf: "center",
+  },
+  ionBadgeCu: {
+    backgroundColor: tokens.color.accentBlueBg,
+  },
+  ionBadgeCa: {
+    backgroundColor: "#ffedd5",
+  },
+  ionBadgeText: {
+    fontSize: 9,
+    fontWeight: "700",
+  },
+  ionBadgeTextCu: {
+    color: tokens.color.accentBlue,
+  },
+  ionBadgeTextCa: {
+    color: "#ea580c",
   },
   map: {
     flex: 1,

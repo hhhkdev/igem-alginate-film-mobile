@@ -45,6 +45,7 @@ export default function AnalysisScreen() {
   const [notes, setNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [locationCoords, setLocationCoords] = useState<{ latitude: number, longitude: number } | undefined>(undefined);
+  const [ionType, setIonType] = useState<"Cu" | "Ca">("Cu");
 
   const defaultCoords = { latitude: 35.8885, longitude: 128.6105 };
   const currentCoords = locationCoords || defaultCoords;
@@ -119,6 +120,7 @@ export default function AnalysisScreen() {
         locationName: finalLocName,
         sampleName: sampleName || "Sample A",
         notes: notes || "",
+        ionType: ionType,
       });
 
       const isSynced = (saved as any).synced;
@@ -144,6 +146,7 @@ export default function AnalysisScreen() {
           latitude: locationCoords?.latitude?.toString() || "",
           longitude: locationCoords?.longitude?.toString() || "",
           synced: isSynced ? "true" : "false",
+          ionType: ionType,
         },
       });
     } catch (error) {
@@ -240,6 +243,7 @@ export default function AnalysisScreen() {
     const analysis = analyzeConcentration({
       redAreaMm2: areaMm,
       filmDiameterMm: filmDiameterMm,
+      ionType: ionType,
     });
 
     return {
@@ -463,6 +467,42 @@ export default function AnalysisScreen() {
           {/* Lower Section: Results Panel */}
           <View style={s.resultsPanel}>
             <ScrollView contentContainerStyle={s.resultsPanelContent}>
+              {/* Ion Type Selector */}
+              <View style={s.ionToggleContainer}>
+                <TouchableOpacity
+                  onPress={() => setIonType("Cu")}
+                  style={[
+                    s.ionToggleButton,
+                    ionType === "Cu" && s.ionToggleButtonActiveCu,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      s.ionToggleText,
+                      ionType === "Cu" && s.ionToggleTextActive,
+                    ]}
+                  >
+                    Copper (CuSO₄)
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setIonType("Ca")}
+                  style={[
+                    s.ionToggleButton,
+                    ionType === "Ca" && s.ionToggleButtonActiveCa,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      s.ionToggleText,
+                      ionType === "Ca" && s.ionToggleTextActive,
+                    ]}
+                  >
+                    Calcium (CaCl₂)
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
               {/* Mode Toggle */}
               <View style={s.modeToggleContainer}>
                 <TouchableOpacity
@@ -822,6 +862,39 @@ const s = StyleSheet.create({
   resultsPanelContent: {
     padding: 20,
     paddingBottom: 20,
+  },
+  ionToggleContainer: {
+    flexDirection: "row",
+    backgroundColor: tokens.color.bgMuted,
+    borderRadius: tokens.radius.toggleContainer,
+    padding: 3,
+    marginBottom: 12,
+  },
+  ionToggleButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: tokens.radius.toggleInner,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ionToggleButtonActiveCu: {
+    backgroundColor: tokens.color.accentBlueBg,
+    borderWidth: 1,
+    borderColor: tokens.color.accentBlue,
+  },
+  ionToggleButtonActiveCa: {
+    backgroundColor: "#ffedd5",
+    borderWidth: 1,
+    borderColor: "#ea580c",
+  },
+  ionToggleText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: tokens.color.textPlaceholder,
+  },
+  ionToggleTextActive: {
+    color: tokens.color.textPrimary,
+    fontWeight: "700",
   },
   fixedBottomAction: {
     paddingHorizontal: 20,
